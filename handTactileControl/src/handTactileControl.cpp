@@ -546,11 +546,11 @@ bool HandTactileControlThread::threadInit()
     
     if (handName!="none")
     {
-	fingers[0]=th;
-	fingers[1]=in;
-	fingers[2]=mi;
-	fingers[3]=ri;
-        fingers[4]=li;
+	fingers[4]=th;
+	fingers[0]=in;
+	fingers[1]=mi;
+	fingers[2]=ri;
+        fingers[3]=li;
     }
     else
     {
@@ -805,7 +805,8 @@ void HandTactileControlThread::handMoveToPose(Vector xd, Vector od)
     cout << "Executing movement..." << endl;
     
     cartCtrl->goToPoseSync(xd,od);   // send request and wait for reply
-    cartCtrl->waitMotionDone(0.04);  // wait until the motion is done and ping at each 0.04 seconds
+    //cartCtrl->waitMotionDone(0.04);  // wait until the motion is done and ping at each 0.04 seconds
+    Time::delay(2.0);
     
     cartCtrl->getPose(x0,o0); 
     
@@ -908,10 +909,11 @@ void HandTactileControlThread::updateFingertipForces()
 	Vector fingAngs;
 	Vector fingPos;
 	Matrix tipFrame(4,4);
+	Matrix tipFrameT(4,4);
 	
 	//fprintf(stderr,"\n4\n");
 	
-	for (int i = 0; i < N_FINGERS; i++)   // compute unitary forces applied on the fingertips, in the fingertip reference frame
+	for (int i = 0; i < N_FINGERS; i++)   // transforms the unitary forces applied on the fingertips, from the fingertips reference frame to the hand palm reference frame
 	{
 	    //fprintf(stderr,"\n%s\n",fingers[i].getType().c_str()); 
 	    //tipFrame.zero();
@@ -919,13 +921,14 @@ void HandTactileControlThread::updateFingertipForces()
 	    encs->getEncoders(encoders.data());
 	    fingers[i].getChainJoints(encoders,fingAngs);                // wrt the end-effector frame
 	    tipFrame=fingers[i].getH((M_PI/180.0)*fingAngs);
+	    tipFrameT=tipFrame.transposed();
 	    
 	    //fprintf(stderr,"\n5_%i\n",i);
 	       
 	    for (int k=0; k<3; k++)
 	    {
 	        //fprintf(stderr,"\n6_%i\n",k);
-	        fingertipForcesGlobal(i,k) = tipFrame(k,0)*fingertipForcesLocal(i,0) + tipFrame(k,1)*fingertipForcesLocal(i,1) + tipFrame(k,2)*fingertipForcesLocal(i,2);
+	        fingertipForcesGlobal(i,k) = tipFrameT(k,0)*fingertipForcesLocal(i,0) + tipFrameT(k,1)*fingertipForcesLocal(i,1) + tipFrameT(k,2)*fingertipForcesLocal(i,2);
 	    }
 	    
 	}
