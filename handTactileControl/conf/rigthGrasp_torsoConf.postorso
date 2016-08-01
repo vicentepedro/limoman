@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Sequence_postorso TotPositions="1" ReferencePart="torso">
+    <Position Index="0" Timing="1.00">
+        <JointPositions Count="3">
+            <PosValue>-30.02</PosValue>
+            <PosValue>-0.01</PosValue>
+            <PosValue>20.23</PosValue>
+        </JointPositions>
+        <JointVelocities Count="3">
+            <SpeedValue>10.00</SpeedValue>
+            <SpeedValue>10.00</SpeedValue>
+            <SpeedValue>10.00</SpeedValue>
+        </JointVelocities>
+    </Position>
+</Sequence_postorso>

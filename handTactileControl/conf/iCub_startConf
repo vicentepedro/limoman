@@ -1,0 +1,13 @@
+right_hand grasp
+
+right_arm -50 40   0 40 0 0 0 
+left_arm  -54 40 -10 40 0 0 0
+torso     -30  0  20
+head      -20  0 -30  0 0 0 
+
+left_hand grasp
+
+right_arm -50 40   0 40 0 0 0 
+left_arm  -54 40 -10 40 0 0 0
+torso      35  0  20
+head      -20  0  30  0 0 0

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Sequence_poshead TotPositions="1" ReferencePart="head">
+    <Position Index="0" Timing="1.00">
+        <JointPositions Count="6">
+            <PosValue>-19.93</PosValue>
+            <PosValue>-0.02</PosValue>
+            <PosValue>-30.57</PosValue>
+            <PosValue>0.02</PosValue>
+            <PosValue>-0.00</PosValue>
+            <PosValue>0.00</PosValue>
+        </JointPositions>
+        <JointVelocities Count="6">
+            <SpeedValue>10.00</SpeedValue>
+            <SpeedValue>10.00</SpeedValue>
+            <SpeedValue>10.00</SpeedValue>
+            <SpeedValue>10.00</SpeedValue>
+            <SpeedValue>10.00</SpeedValue>
+            <SpeedValue>10.00</SpeedValue>
+        </JointVelocities>
+    </Position>
+</Sequence_poshead>

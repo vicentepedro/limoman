@@ -1,0 +1,24 @@
+<application>
+<name>Grasp exploration with Bayesian Optimization</name>
+
+        <dependencies>
+        <port>/icub/left_arm/state:o</port>
+        <port>/icub/right_arm/state:o</port>
+        </dependencies>
+
+
+        <module>
+                <name>handTactileControl</name>
+                <node>localhost</node>
+                <tag>handControl</tag>
+        </module>
+
+        <connection>
+                <from>/icub/skin/right_hand_comp</from>
+                <to>/handTactileControl/skinComp:i</to>
+                <protocol>udp</protocol>
+        </connection>
+
+</application>
+
+
