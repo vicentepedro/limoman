@@ -924,6 +924,20 @@ void HandTactileControlThread::updateFingertipForces()
 	    tipFrameT=tipFrame.transposed();
 	    
 	    //fprintf(stderr,"\n5_%i\n",i);
+
+        /*****
+        fprintf(stderr,"\nFinger_%i_kin\n",i);
+        for (int k=0; k<4; k++)
+        {
+            for (int j=0; j<4; j++)
+            {
+                fprintf(stderr,"%.2lf ",tipFrame(k,j));
+            }
+            fprintf(stderr,"\n");
+        }
+        fprintf(stderr,"\n\n");
+        /******/
+             
 	       
 	    for (int k=0; k<3; k++)
 	    {
@@ -1515,18 +1529,38 @@ void HandTactileControlThread::sendData()
     Bottle &outBottle = outputPort->prepare();
     outBottle.clear();
 
+    //Unit vectors of the overall distributed forces applied on the fingertips, with respect to a global reference frame centered in the hand palm
+
+    /**********  THUMB  *********/
+    outBottle.addDouble(fingertipForcesGlobal(4,0));    //X component 
+    outBottle.addDouble(fingertipForcesGlobal(4,1));    //Y component 
+    outBottle.addDouble(fingertipForcesGlobal(4,2));    //Z component
+
+    /**********  INDEX FINGER  *********/
+    outBottle.addDouble(fingertipForcesGlobal(0,0));
+    outBottle.addDouble(fingertipForcesGlobal(0,1));
+    outBottle.addDouble(fingertipForcesGlobal(0,2));
+    
+    /**********  MIDDLE FINGER  *********/
+    outBottle.addDouble(fingertipForcesGlobal(1,0));
+    outBottle.addDouble(fingertipForcesGlobal(1,1));
+    outBottle.addDouble(fingertipForcesGlobal(1,2));
+
+    /*************
+
     for(int i=0; i<N_FINGERS; i++)
     {
         for(int k=0; k<3; k++)
-	{
-	    outBottle.addDouble(fingertipForcesGlobal(i,k));
-	    //outBottle.addDouble(fingertipForcesLocal(i,k));
-	    //outBottle.addDouble(fingerTaxelsData(i,k));
+	    {
+	        outBottle.addDouble(fingertipForcesGlobal(i,k));
+	        //outBottle.addDouble(fingertipForcesLocal(i,k));
+	        //outBottle.addDouble(fingerTaxelsData(i,k));
 	   
-	}
+	    }
     }
+    /**************/
 
-    outputPort->write(); //sends the unit vector forces applied on the fingertips ()
+    outputPort->write(); //sends the unit vector forces applied on the fingertips
   
 }
 
@@ -1562,7 +1596,11 @@ void HandTactileControlThread::run()
        
     case 1:
        //pos->stop();
-       fprintf(stderr, "\n\n-- waiting for a new target hand pose --\n\n");
+       if (ctrlStep%DISPLAY_RATE==0)
+       {  
+           fprintf(stderr, "\n\n-- waiting for a new target hand pose --\n\n");
+       }
+       //fprintf(stderr, "\n\n-- waiting for a new target hand pose --\n\n");
        Time::delay(0.1);
        break;
 	
