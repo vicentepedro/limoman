@@ -10,7 +10,8 @@ const int N_TAXELS   = 12;
 
 const double MAX_VEL_DEF = 40.0;
 
-const double TOUCH_THR = 0.5;
+const double TOUCH_NOISE_THR = 2.0;
+const double TOUCH_CONTACT_THR = 4.0;
 
 /*************   FOR SIMULATOR  ********/
 
@@ -574,6 +575,7 @@ bool HandTactileControlThread::threadInit()
     
     fingerTaxelsData.resize(N_FINGERS,N_TAXELS); //typically: 5 fingertips, 12 taxels per fingertip
     fingerTaxelsDataBinary.resize(N_FINGERS,N_TAXELS); //typically: 5 fingertips, 12 taxels per fingertip
+    fingerTaxelsDataContacts.resize(N_FINGERS,N_TAXELS); //typically: 5 fingertips, 12 taxels per fingertip
     cout << "\nRead tactile data...\n";
     if (!readFingerSkinCompData(true))
     {
@@ -839,9 +841,13 @@ bool HandTactileControlThread::readFingerSkinCompData(bool block)
 			        fingerTaxelsDataBinary(i,j)=0.0;
 				fingerTaxelsData(i,j) = fingersSensitivityScale(i,0) * (*iCubSkinData)[12*i + j];
 				
-				if (fingerTaxelsData(i,j) > TOUCH_THR)
+				if (fingerTaxelsData(i,j) > TOUCH_NOISE_THR)
 				{
 				    fingerTaxelsDataBinary(i,j)=1.0;
+				}
+				if (fingerTaxelsData(i,j) > TOUCH_CONTACT_THR)
+				{
+				    fingerTaxelsDataContacts(i,j)=1.0;
 				}
 				//fprintf(stderr,"%.1lf  ", (*iCubSkinData)[12*i + j]);
 				//fprintf(stderr,"%.1lf  ", fingerTaxelsDataBinary(i,j));
@@ -1224,7 +1230,7 @@ void HandTactileControlThread::checkFingersContacts(bool *contactsList)
         avgPressure = 0.0;
         for (int j=0;j<N_TAXELS;j++)
 	{
-	    avgPressure += fingerTaxelsDataBinary(i,j);
+	    avgPressure += fingerTaxelsDataContacts(i,j);
 	}
 	if (avgPressure > 0.0)
 	{

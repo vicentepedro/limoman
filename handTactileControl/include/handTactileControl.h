@@ -59,6 +59,7 @@ class HandTactileControlThread : public RateThread
     Matrix fingersSensitivityScale;
     Matrix fingerTaxelsData;
     Matrix fingerTaxelsDataBinary;
+    Matrix fingerTaxelsDataContacts;
     Matrix fingertipForcesLocal;
     Matrix fingertipForcesGlobal;
     
