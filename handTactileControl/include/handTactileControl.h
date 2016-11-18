@@ -120,7 +120,8 @@ class HandTactileControlThread : public RateThread
     double *handVelRef;
     double *armFullConf;
     int *controlledJoints;
-    int *controlModes;
+    int *controlModesHand;
+    int *controlModesArm;
     
     double velocity;
     double refSpeed;

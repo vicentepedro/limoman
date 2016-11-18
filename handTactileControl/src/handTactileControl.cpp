@@ -9,9 +9,10 @@ const int N_FINGERS  = 5;
 const int N_TAXELS   = 12;
 
 const double MAX_VEL_DEF = 40.0;
+const double HAND_MIN_VEL = 15.0;
 
-const double TOUCH_NOISE_THR = 2.0;
-const double TOUCH_CONTACT_THR = 4.0;
+const double TOUCH_NOISE_THR = 3.0;
+const double TOUCH_CONTACT_THR = 6.0;
 
 /*************   FOR SIMULATOR  ********/
 
@@ -30,7 +31,7 @@ const double MAX_GRASP_DURATION = 10.0;
 const double GRASP_POS_THR = 1.0;
 const double HAND_SQUEEZE_STEP[]={0.0,  0.0, 3.0, 5.0,  3.0,5.0,  3.0,5.0,  10.0};
 
-const double ARM_DEF_HOME[] = {-50.0,  60.0,  0.0,  40.0, 0.0,  0.0,   0.0,  40.0,  20.0,20.0,20.0,  20.0,20.0, 20.0,20.0,  20.0};
+const double ARM_DEF_HOME[] = {-50.0,  60.0,  0.0,    40.0,    0.0,  0.0,   0.0,     20.0,  80.0,10.0,10.0,  10.0,10.0, 10.0,10.0,  10.0};
 
 const int DISPLAY_RATE = 50; //display information on screen every 50 control steps
 const double INIT_WAIT_TIME = 2.0; 
@@ -589,10 +590,11 @@ bool HandTactileControlThread::threadInit()
     handJointsPos.resize(ctrlJoints,1);    
     
     controlledJoints = new int[ctrlJoints];
-    controlModes = new int[ctrlJoints];
+    controlModesHand = new int[ctrlJoints];
     handPosRef = new double[ctrlJoints];
     handVelRef = new double[ctrlJoints];
     armFullConf = new double[nAxes];
+    controlModesArm = new int[nAxes];
     
     for (int i= 0; i < ctrlJoints; i++)
     {
@@ -603,9 +605,9 @@ bool HandTactileControlThread::threadInit()
     {
 	//handVelRef[i] = velocity;
           handVelRef[i] = (HAND_DEF_TARGET[i] - HAND_DEF_HOME[i]) / HAND_VEL_COEFF;
-	  if (handVelRef[i] < 2.0)
+	  if (handVelRef[i] < HAND_MIN_VEL)
 	  {
-	      handVelRef[i] = 2.0;
+	      handVelRef[i] = HAND_MIN_VEL;
 	  }
     }
     
@@ -694,21 +696,30 @@ bool HandTactileControlThread::threadInit()
 
 void HandTactileControlThread::goHomeArm()
 {
-    ctrlMode->getControlModes(controlModes);
+    ctrlMode->getControlModes(controlModesArm);
+
+    //fprintf(stderr,"\ngoHomeArm - step_1\n");
+
     for(int i=0; i<nAxes; i++)
     {
-        if (controlModes[i]!=VOCAB_CM_POSITION)
+        if (controlModesArm[i]!=VOCAB_CM_POSITION)
 	{
 	    ctrlMode->setControlMode(i,VOCAB_CM_POSITION);
 	}
     }
+
+    //fprintf(stderr,"\ngoHomeArm - step_2\n");
     
     for (int i= 0; i < nAxes; i++)
     {
 	armFullConf[i] = (*armRestPos)[i];
     }
+
+    //fprintf(stderr,"\ngoHomeArm - step_3\n");
 	    
     pos->positionMove(armFullConf);  // position move command using bell-shaped velocities, non-blocking
+
+    //fprintf(stderr,"\ngoHomeArm - step_4\n");
     
     /********** COMMENT THIS TO MAKE IT NON-BLOCKING ***********/
     bool done=false;
@@ -738,10 +749,10 @@ void HandTactileControlThread::goHomeArm()
 
 void HandTactileControlThread::setArm(Vector armConf)
 {
-    ctrlMode->getControlModes(controlModes);
+    ctrlMode->getControlModes(controlModesArm);
     for(int i=0; i<nAxes; i++)
     {
-        if (controlModes[i]!=VOCAB_CM_POSITION)
+        if (controlModesArm[i]!=VOCAB_CM_POSITION)
 	{
 	    ctrlMode->setControlMode(i,VOCAB_CM_POSITION);
 	}
@@ -838,16 +849,17 @@ bool HandTactileControlThread::readFingerSkinCompData(bool block)
 		{
 			for (int j = 0; j < N_TAXELS; j++)
 			{
-			        fingerTaxelsDataBinary(i,j)=0.0;
+			    fingerTaxelsDataBinary(i,j) = 0.0;
+                fingerTaxelsDataContacts(i,j) = 0.0;
 				fingerTaxelsData(i,j) = fingersSensitivityScale(i,0) * (*iCubSkinData)[12*i + j];
 				
 				if (fingerTaxelsData(i,j) > TOUCH_NOISE_THR)
 				{
-				    fingerTaxelsDataBinary(i,j)=1.0;
+				    fingerTaxelsDataBinary(i,j) = 1.0;
 				}
 				if (fingerTaxelsData(i,j) > TOUCH_CONTACT_THR)
 				{
-				    fingerTaxelsDataContacts(i,j)=1.0;
+				    fingerTaxelsDataContacts(i,j) = 1.0;
 				}
 				//fprintf(stderr,"%.1lf  ", (*iCubSkinData)[12*i + j]);
 				//fprintf(stderr,"%.1lf  ", fingerTaxelsDataBinary(i,j));
@@ -1097,10 +1109,10 @@ void HandTactileControlThread::updateRef()
 
 void HandTactileControlThread::openHand()   
 {
-    ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModes);
+    ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModesHand);
     for(int i=0; i<ctrlJoints; i++)
     {
-        if (controlModes[i]!=VOCAB_CM_POSITION)
+        if (controlModesHand[i]!=VOCAB_CM_POSITION)
 	{
 	    ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION);
 	}
@@ -1237,16 +1249,21 @@ void HandTactileControlThread::checkFingersContacts(bool *contactsList)
 	    contactsList[i] = true;
 	    fprintf(stderr,"\n\n\nDetected contact on finger %i. Average taxles pressure is = %.2lf.\n\n\n", i, avgPressure);
 	}
+    else
+    {
+        contactsList[i] = false;
+    }
+    
     }
 }
 
 void HandTactileControlThread::squeezingStep()   
 {
      /********* POSTION DIRECT  *********
-    ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModes);
+    ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModesHand);
     for(int i=0; i<ctrlJoints; i++)
     {
-        if (controlModes[i]!=VOCAB_CM_POSITION_DIRECT)
+        if (controlModesHand[i]!=VOCAB_CM_POSITION_DIRECT)
 	{
 	    ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION_DIRECT);
 	}
@@ -1263,10 +1280,10 @@ void HandTactileControlThread::squeezingStep()
     
     /*******************************/
     
-    ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModes);
+    ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModesHand);
     for(int i=0; i<ctrlJoints; i++)
     {
-        if (controlModes[i]!=VOCAB_CM_POSITION)
+        if (controlModesHand[i]!=VOCAB_CM_POSITION)
 	{
 	    ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION);
 	}
@@ -1288,10 +1305,10 @@ void HandTactileControlThread::squeezingStep()
 void HandTactileControlThread::closeHandToContact()   
 {
     /********* POSTION DIRECT  *********
-    ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModes);
+    ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModesHand);
     for(int i=0; i<ctrlJoints; i++)
     {
-        if (controlModes[i]!=VOCAB_CM_POSITION_DIRECT)
+        if (controlModesHand[i]!=VOCAB_CM_POSITION_DIRECT)
 	{
 	    ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION_DIRECT);
 	}
@@ -1306,10 +1323,10 @@ void HandTactileControlThread::closeHandToContact()
     
     /**********************************/
     
-    ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModes);
+    ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModesHand);
     for(int i=0; i<ctrlJoints; i++)
     {
-        if (controlModes[i]!=VOCAB_CM_POSITION)
+        if (controlModesHand[i]!=VOCAB_CM_POSITION)
 	{
 	    ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION);
 	}
@@ -1350,8 +1367,8 @@ void HandTactileControlThread::closeHandToContact()
     {
         readEncs();
         readFingerSkinCompData();
-	checkFingersContacts(contacts);
-	allContacts=true;                      //optimistic robot!
+	    checkFingersContacts(contacts);
+	    allContacts=true;                      //optimistic robot!
 	for (int i=0;i<N_FINGERS;i++)          //then checking the above...
 	{
 	    if (contacts[i])
@@ -1666,7 +1683,8 @@ void HandTactileControlThread::run()
 void HandTactileControlThread::threadRelease() 
 {    
     delete[] controlledJoints;
-    delete[] controlModes;
+    delete[] controlModesHand;
+    delete[] controlModesArm;
     delete[] handPosRef;
     delete[] handVelRef;
     delete[] armFullConf;
