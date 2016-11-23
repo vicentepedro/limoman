@@ -578,7 +578,8 @@ bool HandTactileControlThread::threadInit()
     fingerTaxelsDataBinary.resize(N_FINGERS,N_TAXELS); //typically: 5 fingertips, 12 taxels per fingertip
     fingerTaxelsDataContacts.resize(N_FINGERS,N_TAXELS); //typically: 5 fingertips, 12 taxels per fingertip
     cout << "\nRead tactile data...\n";
-    if (!readFingerSkinCompData(true))
+//    if (!readFingerSkinCompData(true))
+    if (!readFingerSkinCompData(false))
     {
         cout << "WARNING - Problem reading tactile sensors.\n";
     }
@@ -586,7 +587,10 @@ bool HandTactileControlThread::threadInit()
     
     fingertipForcesLocal.resize(N_FINGERS,3);
     fingertipForcesGlobal.resize(N_FINGERS,3);
-     
+    //Resize the finger position matrix
+    fingertipPose.resize(N_FINGERS, 3);
+       
+ 
     handJointsPos.resize(ctrlJoints,1);    
     
     controlledJoints = new int[ctrlJoints];
@@ -938,6 +942,7 @@ void HandTactileControlThread::updateFingertipForces()
 	    fingAngs.clear();
 	    encs->getEncoders(encoders.data());
 	    fingers[i].getChainJoints(encoders,fingAngs);                // wrt the end-effector frame
+	    fingertipPose.setRow(i, fingers[i].EndEffPosition((M_PI/180.0)*fingAngs)); 
 	    tipFrame=fingers[i].getH((M_PI/180.0)*fingAngs);
 	    tipFrameT=tipFrame.transposed();
 	    
