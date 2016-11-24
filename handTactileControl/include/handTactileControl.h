@@ -62,7 +62,10 @@ class HandTactileControlThread : public RateThread
     Matrix fingerTaxelsDataContacts;
     Matrix fingertipForcesLocal;
     Matrix fingertipForcesGlobal;
-    
+   
+    // Additional Matrix to save the positions of each finger 
+    Matrix fingertipPose;
+
     Matrix handJointsPos;
     
     int    nAxes;
