@@ -578,8 +578,7 @@ bool HandTactileControlThread::threadInit()
     fingerTaxelsDataBinary.resize(N_FINGERS,N_TAXELS); //typically: 5 fingertips, 12 taxels per fingertip
     fingerTaxelsDataContacts.resize(N_FINGERS,N_TAXELS); //typically: 5 fingertips, 12 taxels per fingertip
     cout << "\nRead tactile data...\n";
-//    if (!readFingerSkinCompData(true)) //nao esquecer que isto foi mudado!!!
-    if (!readFingerSkinCompData(false))
+    if (!readFingerSkinCompData(true)) 
     {
         cout << "WARNING - Problem reading tactile sensors.\n";
     }
