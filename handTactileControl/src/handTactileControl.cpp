@@ -578,7 +578,7 @@ bool HandTactileControlThread::threadInit()
     fingerTaxelsDataBinary.resize(N_FINGERS,N_TAXELS); //typically: 5 fingertips, 12 taxels per fingertip
     fingerTaxelsDataContacts.resize(N_FINGERS,N_TAXELS); //typically: 5 fingertips, 12 taxels per fingertip
     cout << "\nRead tactile data...\n";
-//    if (!readFingerSkinCompData(true))
+//    if (!readFingerSkinCompData(true)) //nao esquecer que isto foi mudado!!!
     if (!readFingerSkinCompData(false))
     {
         cout << "WARNING - Problem reading tactile sensors.\n";
@@ -1573,6 +1573,22 @@ void HandTactileControlThread::sendData()
     outBottle.addDouble(fingertipForcesGlobal(1,0));
     outBottle.addDouble(fingertipForcesGlobal(1,1));
     outBottle.addDouble(fingertipForcesGlobal(1,2));
+
+    
+    /*********  THUMB 3D POSITION *******/
+    outBottle.addDouble(fingertipPose(4,0));	//X Coordinate
+    outBottle.addDouble(fingertipPose(4,1));	//Y Coordinate
+    outBottle.addDouble(fingertipPose(4,2));	//Z Coordinate
+
+    /*********  INDEX 3D POSITION *******/
+    outBottle.addDouble(fingertipPose(0,0));	//X Coordinate
+    outBottle.addDouble(fingertipPose(0,1));	//Y Coordinate
+    outBottle.addDouble(fingertipPose(0,2));	//Z Coordinate
+
+    /*********  MIDDLE 3D POSITION *******/
+    outBottle.addDouble(fingertipPose(1,0));	//X Coordinate
+    outBottle.addDouble(fingertipPose(1,1));	//Y Coordinate
+    outBottle.addDouble(fingertipPose(1,2));	//Z Coordinate
 
     /*************
 
