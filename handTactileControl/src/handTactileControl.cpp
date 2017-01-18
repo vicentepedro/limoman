@@ -1461,7 +1461,16 @@ void HandTactileControlThread::computeGraspMetric()
 	fprintf(stderr,"\n");
     }
     fprintf(stderr,"\n");
-    
+
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Taxels Data Binary - Thumb\n");
+    fprintf(stderr,"\n");
+    for (int i = 0; i < N_TAXELS; i++)
+    {
+        fprintf(stderr,"%d: %.1lf  ",i, fingerTaxelsDataBinary(4,i)); // Só o thumb - 4
+        fprintf(stderr,"\n");
+    }
+    fprintf(stderr,"\n");
     /********* ACTUAL GRASP METRIC IS CURRENTLY COMPUTED OUTSIDE THIS MODULE (based on the global unit vector forces) ***********/
   
   
