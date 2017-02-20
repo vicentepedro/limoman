@@ -1010,72 +1010,84 @@ void HandTactileControlThread::getUnitVector(int index,std::vector<double>& unit
 	{
 
 	case 0:
+		//it should remain the same		
 		unitVector[0] = -1.0;
 		unitVector[1] = 0.0;
 		unitVector[2] = 0.0;
 		break;
 
+	case 10:
+		// tactile 11 (index 10) previous 2 (index 1)
+		unitVector[0] = -0.39956;
+		unitVector[1] = 0.0;
+		unitVector[2] = 0.91671;
+		break;
+
 	case 1:
+		// tactile 2 (index 1) previous 3 (index 2)
 		unitVector[0] = -0.39956;
 		unitVector[1] = 0.0;
 		unitVector[2] = 0.91671;
 		break;
 
 	case 2:
-		unitVector[0] = -0.39956;
-		unitVector[1] = 0.0;
-		unitVector[2] = 0.91671;
-		break;
-
-	case 3:
+		// tactile 3 (index 2) previous 4 (index 3)
 		unitVector[0] = -1.0;
 		unitVector[1] = 0.0;
 		unitVector[2] = 0.0;
 		break;
 
-	case 4:
+	case 3:
+		// tactile 4 (index 3) previous 5 (index 4)
 		unitVector[0] = -0.78673;
 		unitVector[1] = 0.60316;
 		unitVector[2] = 0.13140;
 		break;
 
-	case 5:
+	case 4:
+		// tactile 5 (index 4) previous 6 (index 5)
 		unitVector[0] = -0.30907;
 		unitVector[1] = 0.47765;
 		unitVector[2] = 0.82239;
 		break;
 
-	case 6:
+	case 5:
+		// tactile 6 (index 5) previous 7 (index 6)
 		unitVector[0] = 0.0;
 		unitVector[1] = 1.0;
 		unitVector[2] = 0.0;
 		break;
 
-	case 7:
+	case 6:
+		// tactile 7 (index 6) previous 8 (index 7)
 		unitVector[0] = 0.30907;
 		unitVector[1] = 0.47765;
 		unitVector[2] = 0.82239;
 		break;
 
-	case 8:
+	case 7:
+		// tactile 8 (index 7) previous 9 (index 8)
 		unitVector[0] = 0.78673;
 		unitVector[1] = 0.60316;
 		unitVector[2] = 0.13140;
 		break;
 
-	case 9:
+	case 8:
+		// tactile 9 (index 8) previous 10 (index 9)
 		unitVector[0] = 1.0;
 		unitVector[1] = 0.0;
 		unitVector[2] = 0.0;
 		break;
 
-	case 10:
+	case 9:
+		// tactile 10 (index 9) previous 11 (index 10)
 		unitVector[0] = 0.39956;
 		unitVector[1] = 0.0;
 		unitVector[2] = 0.91671;
 		break;
 
 	case 11:
+		// tactile 12 (index 11) previous 12 (index 11)
 		unitVector[0] = 0.39956;
 		unitVector[1] = 0.0;
 		unitVector[2] = 0.91671;
