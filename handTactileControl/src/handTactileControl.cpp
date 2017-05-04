@@ -1280,9 +1280,9 @@ void HandTactileControlThread::squeezingStep()
     for(int i=0; i<ctrlJoints; i++)
     {
         if (controlModesHand[i]!=VOCAB_CM_POSITION_DIRECT)
-	{
-	    ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION_DIRECT);
-	}
+    {
+        ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION_DIRECT);
+    }
     }
     
     encs->getEncoders(encoders.data());
@@ -1300,9 +1300,9 @@ void HandTactileControlThread::squeezingStep()
     for(int i=0; i<ctrlJoints; i++)
     {
         if (controlModesHand[i]!=VOCAB_CM_POSITION)
-	{
-	    ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION);
-	}
+        {
+            ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION);
+        }
     }
     
     encs->getEncoders(encoders.data());
@@ -1325,9 +1325,9 @@ void HandTactileControlThread::closeHandToContact()
     for(int i=0; i<ctrlJoints; i++)
     {
         if (controlModesHand[i]!=VOCAB_CM_POSITION_DIRECT)
-	{
-	    ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION_DIRECT);
-	}
+    {
+        ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION_DIRECT);
+    }
     }
     
     for(int i=0; i<ctrlJoints; i++)
@@ -1343,9 +1343,9 @@ void HandTactileControlThread::closeHandToContact()
     for(int i=0; i<ctrlJoints; i++)
     {
         if (controlModesHand[i]!=VOCAB_CM_POSITION)
-	{
-	    ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION);
-	}
+    {
+        ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION);
+    }
     }
     
     for(int i=0; i<ctrlJoints; i++)
@@ -1383,28 +1383,28 @@ void HandTactileControlThread::closeHandToContact()
     {
         readEncs();
         readFingerSkinCompData();
-	    checkFingersContacts(contacts);
-	    allContacts=true;                      //optimistic robot!
-	for (int i=0;i<N_FINGERS;i++)          //then checking the above...
-	{
-	    if (contacts[i])
-	    {
-	        stopFinger(i);
-		fprintf(stderr,"\nStop finger %i because of contact detected.\n", i);
-	    }
-	    allContacts = allContacts && contacts[i];
-	}
-	checkMotionDone_posDir_handGrasp(posMoveDone);  //VERY SPECIFIC... MIGHT NOT WORK IN GENERAL SITUATIONS...
-	if (posMoveDone)
-	{
-	    fprintf(stderr,"\n\n--TARGET FINGERS CONFIGURATION REACHED--\n\n");
-	}
-	if (((Time::now() - startTime) >= (MAX_GRASP_DURATION - 0.05)))
-	{
-	    fprintf(stderr,"\n\n--MOVEMENT TIME DEADLINE EXPIRING--\n\n");
-	}
-	 
-	Time::delay(0.01);
+        checkFingersContacts(contacts);
+        allContacts=true;                      //optimistic robot!
+    for (int i=0;i<N_FINGERS;i++)          //then checking the above...
+    {
+        if (contacts[i])
+        {
+            stopFinger(i);
+            fprintf(stderr,"\nStop finger %i because of contact detected.\n", i);
+        }
+        allContacts = allContacts && contacts[i];
+    }
+    checkMotionDone_posDir_handGrasp(posMoveDone);  //VERY SPECIFIC... MIGHT NOT WORK IN GENERAL SITUATIONS...
+    if (posMoveDone)
+    {
+        fprintf(stderr,"\n\n--TARGET FINGERS CONFIGURATION REACHED--\n\n");
+    }
+    if (((Time::now() - startTime) >= (MAX_GRASP_DURATION - 0.05)))
+    {
+        fprintf(stderr,"\n\n--MOVEMENT TIME DEADLINE EXPIRING--\n\n");
+    }
+     
+    Time::delay(0.01);
     }
     
     fprintf(stderr,"\n...done.\n");
@@ -1432,9 +1432,9 @@ void HandTactileControlThread::checkMotionDone_posDir_handGrasp(bool &done)
     for(int i=0; i<ctrlJoints; i++)  //now checking the above...
     {
         if ( fabs(encoders[i+7] - handPosRef[i]) > GRASP_POS_THR)
-	{
-	    done=false;
-	}
+        {
+            done=false;
+        }
     } 
      
 }
@@ -1454,10 +1454,10 @@ void HandTactileControlThread::computeGraspMetric()
     for (int i = 0; i < N_FINGERS; i++)
     {
         for (int k = 0; k < 3; k++)
-	{
-	    fprintf(stderr,"%.1lf  ", fingertipForcesLocal(i,k));
-	}
-	fprintf(stderr,"\n");
+    {
+        fprintf(stderr,"%.1lf  ", fingertipForcesLocal(i,k));
+    }
+    fprintf(stderr,"\n");
     }
     fprintf(stderr,"\n");
     
@@ -1467,10 +1467,10 @@ void HandTactileControlThread::computeGraspMetric()
     for (int i = 0; i < N_FINGERS; i++)
     {
         for (int k = 0; k < 3; k++)
-	{
-	    fprintf(stderr,"%.1lf  ", fingertipForcesGlobal(i,k));
-	}
-	fprintf(stderr,"\n");
+    {
+        fprintf(stderr,"%.1lf  ", fingertipForcesGlobal(i,k));
+    }
+    fprintf(stderr,"\n");
     }
     fprintf(stderr,"\n");
 
@@ -1501,9 +1501,9 @@ void HandTactileControlThread::readEncs(bool v)
     if (!encs->getEncoders(encoders.data()))
     {
         if (v)
-	{  
+        {
             fprintf(stderr,"\n\n WARNING! -- Problem reading joints positions \n\n");
-	}
+        }
     }
     
     int j=0;
@@ -1511,10 +1511,10 @@ void HandTactileControlThread::readEncs(bool v)
     for (int i=0; i < nAxes; i++)
     {
         if(controlledJoints[j]==i)
-	{
-	    handJointsPos(j,0) = encoders[i];
-	    j++;
-	}
+    {
+        handJointsPos(j,0) = encoders[i];
+        j++;
+    }
     }
     
     if (j!=ctrlJoints)
@@ -1528,22 +1528,22 @@ bool HandTactileControlThread::readInputPort()
 {
     
     if(Bottle *bot=inputPort->read(false))  // when control parameters (e.g. target hand pose) are received
-    {   
+    {
         if (bot->size() != nParameters)
-	{
+        {
             cout << "\n[WARNING] - Problem in size of packet received from optimization engine...\n";
-	    cout << bot->size() << " values received, " << nParameters << " expected.\n";
+            cout << bot->size() << " values received, " << nParameters << " expected.\n";
         }
     
         for (int i=0; i<nParameters; i++)
-	{
-	    ctrl_param[i]=bot->get(i).asDouble(); 
-	}
-	
-	fprintf(stderr,"\nNew set of control parameters received\n");
-	fprintf(stderr,"%i parameters were received\n", bot->size());
-	
-	return true;
+        {
+            ctrl_param[i]=bot->get(i).asDouble(); 
+        }
+
+        fprintf(stderr,"\nNew set of control parameters received\n");
+        fprintf(stderr,"%i parameters were received\n", bot->size());
+
+        return true;
     }
 
     return false;
@@ -1615,12 +1615,12 @@ void HandTactileControlThread::sendData()
     for(int i=0; i<N_FINGERS; i++)
     {
         for(int k=0; k<3; k++)
-	    {
-	        outBottle.addDouble(fingertipForcesGlobal(i,k));
-	        //outBottle.addDouble(fingertipForcesLocal(i,k));
-	        //outBottle.addDouble(fingerTaxelsData(i,k));
-	   
-	    }
+        {
+            outBottle.addDouble(fingertipForcesGlobal(i,k));
+            //outBottle.addDouble(fingertipForcesLocal(i,k));
+            //outBottle.addDouble(fingerTaxelsData(i,k));
+       
+        }
     }
     /**************/
 
@@ -1636,7 +1636,7 @@ void HandTactileControlThread::run()
     if (ctrlStep%DISPLAY_RATE==0)
     {  
         fprintf(stderr,"\n\nCycle time (real control loop time): \n");
-	fprintf(stderr,"%.4lf\n\n",Time::now()-cycleTime);
+    fprintf(stderr,"%.4lf\n\n",Time::now()-cycleTime);
     }
     
     cycleTime=Time::now();
@@ -1645,7 +1645,7 @@ void HandTactileControlThread::run()
     if (readInputPort())
     {
         updateRef();
-	controlMode = 2;
+    controlMode = 2;
     }
    
     
@@ -1653,52 +1653,51 @@ void HandTactileControlThread::run()
     {
       
     case 0:
-       //pos->stop();
-       fprintf(stderr, "\n\n-- no hand control (idle)--\n\n");
-       Time::delay(0.5);
-       break;
-       
+        //pos->stop();
+        fprintf(stderr, "\n\n-- no hand control (idle)--\n\n");
+        Time::delay(0.5);
+        break;
+
     case 1:
-       //pos->stop();
-       if (ctrlStep%DISPLAY_RATE==0)
-       {  
+        //pos->stop();
+        if (ctrlStep%DISPLAY_RATE==0)
+        {  
            fprintf(stderr, "\n\n-- waiting for a new target hand pose --\n\n");
-       }
-       //fprintf(stderr, "\n\n-- waiting for a new target hand pose --\n\n");
-       Time::delay(0.1);
-       break;
-	
+        }
+        //fprintf(stderr, "\n\n-- waiting for a new target hand pose --\n\n");
+        Time::delay(0.1);
+        break;
+
     case 2:
-       openHand(); // Non blocking.
-       handMoveToPose(target_hand_p, target_hand_o); // Blocking.
-       closeHandToContact(); // Checking tactile sensors inside here. Stop each finger after contact. Blocking. 
-       //squeezingStep(); // Close the fingers a bit more to improve grasp robustness.
-       computeGraspMetric(); // Based on final touch configuration from previous step.
-       sendData(); // Send grasp metric to optimization engine.
-       dumpData(); // Dump relevant data.
-       openHand(); // Non blocking.
-       controlMode=1;
-       break;
-       
+        openHand(); // Non blocking.
+        handMoveToPose(target_hand_p, target_hand_o); // Blocking.
+        closeHandToContact(); // Checking tactile sensors inside here. Stop each finger after contact. Blocking. 
+        //squeezingStep(); // Close the fingers a bit more to improve grasp robustness.
+        computeGraspMetric(); // Based on final touch configuration from previous step.
+        sendData(); // Send grasp metric to optimization engine.
+        dumpData(); // Dump relevant data.
+        openHand(); // Non blocking.
+        controlMode=1;
+        break;
+
     case 3:
-       //pos->stop();
-       computeGraspMetric(); // Based on fingertip contacts.
-       sendData(); // Send grasp metric to optimization engine.
-       Time::delay(0.1);
-       break;
-       
+        //pos->stop();
+        computeGraspMetric(); // Based on fingertip contacts.
+        sendData(); // Send grasp metric to optimization engine.
+        Time::delay(0.1);
+        break;
+
     default:
-       pos->stop();
-       fprintf(stderr, "\n\n-- [WARNING] - No control mode has been specified for hand control --\n\n");
-       Time::delay(0.1);
-       break;
-       
+        pos->stop();
+        fprintf(stderr, "\n\n-- [WARNING] - No control mode has been specified for hand control --\n\n");
+        Time::delay(0.1);
+        break;
     }
        
     if (ctrlStep%DISPLAY_RATE==0)
     {  
         fprintf(stderr,"\n\nCycle computation time: \n");
-	fprintf(stderr,"%.4lf\n\n",Time::now()-cycleTime);
+        fprintf(stderr,"%.4lf\n\n",Time::now()-cycleTime);
     }
     
     if (ctrlStep%DISPLAY_RATE==0)
