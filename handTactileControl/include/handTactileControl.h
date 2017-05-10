@@ -84,7 +84,8 @@ class HandTactileControlThread : public RateThread
     void readData();
     void readEncs(bool v=true);
     void dumpData();
-    void sendData();
+    void sendUnitForces();
+    void read_sendGraspMetric();
     void goHomeArm();
     void setArm(Vector armConf);
     void setDefHandPoseToThis();
@@ -109,10 +110,13 @@ class HandTactileControlThread : public RateThread
     
     iCubFinger   *fingers;                         // to get access to individual fingers
     
-    BufferedPort< Bottle > *inputPort; //target hand configuration (i.e. hand position wrt object)
     BufferedPort< Vector > *portSkinCompIn; //skin data (compensated)
-    BufferedPort< Bottle > *outputPort; //grasp metric computed on the current grasp (based on the fingetip contacts and estimated interaction forces)
+    BufferedPort< Bottle > *inputOptPort; //target hand configuration (i.e. hand position wrt object)
+    BufferedPort< Bottle > *outputOptPort; //grasp metric computed on the current grasp (based on the fingetip contacts and estimated interaction forces)
     
+    BufferedPort< Bottle > *inputGraspPort; 
+    BufferedPort< Bottle > *outputGraspPort;
+
     Vector *jointLimitsMin;
     Vector *jointLimitsMax;
     Vector *armRestPos;
@@ -138,7 +142,7 @@ public:
     int controlMode; // 0 - idle; 1 - position direct; 2 - postion control with bell-shaped trajectories; 3 - contact sensing test
 
     /* class methods */
-    HandTactileControlThread(PolyDriver *robDev, PolyDriver *cartDev, string pName, Vector *jLimitsMin, Vector *jLimitsMax, Vector *hRestPos, double vel, double mV, int per, BufferedPort< Bottle > *inPort, BufferedPort< Vector > *skinCompPort, BufferedPort< Bottle > *outPort, Vector *cJoints);
+    HandTactileControlThread(PolyDriver *robDev, PolyDriver *cartDev, string pName, Vector *jLimitsMin, Vector *jLimitsMax, Vector *hRestPos, double vel, double mV, int per, BufferedPort< Vector > *skinCompPort, BufferedPort< Bottle > *inOptPort, BufferedPort< Bottle > *outOptPort, BufferedPort< Bottle > *inGraspPort, BufferedPort< Bottle > *outGraspPort,Vector *cJoints);
     bool threadInit();     
     void threadRelease();
     void run(); 
@@ -175,10 +179,16 @@ class HandTactileControlModule : public RFModule
     string localPortName;  
     
     string setPortName;
-    string inputPortName;
     string skinCompPortName;
-    string outputPortName;
-    
+
+    // Optimization
+    string inputOptPortName;
+    string outputOptPortName;
+
+    // Grasp Metric
+    string inputGraspPortName;
+    string outputGraspPortName;
+
     string deviceName;
     
     Vector jointLimitsMin;
@@ -196,9 +206,13 @@ class HandTactileControlModule : public RFModule
     PolyDriver robotDevice;                        // to control robot joints
     PolyDriver cartDevice;                         // to control the robot in Cartesian space
     RpcServer setPort;                             // input/output port that receives commands from user (typically to change some parameters), and sends replies
-    BufferedPort< Bottle > inputPort;              // input port that receives target hand configuration values 
-    BufferedPort< Vector > skinCompPort;         // port to read skin data (compensated)
-    BufferedPort< Bottle > outputPort;              // output port that sends grasp metric values
+    BufferedPort< Vector > skinCompPort;           // port to read skin data (compensated)
+
+    BufferedPort< Bottle > inputOptPort;       // input port that receives target hand configuration values 
+    BufferedPort< Bottle > outputOptPort;        // output port that sends grasp metric
+
+    BufferedPort< Bottle > inputGraspPort;    // input port that receives the grap metric
+    BufferedPort< Bottle > outputGraspPort;     // output port that sends unit vectors
 
     /* pointer to a new thread to be created and started in configure() and stopped in close() */ 
 

@@ -45,6 +45,11 @@ const int DEFAULT_CONTROL_PERIOD = 10;
  * If you are migrating from the old Module, this is the 
  *  equivalent of the "open" method.
  */
+/*************************************************************************************************/  
+/*********************************  HandTactileControlModule  ************************************/
+/*************************************************************************************************/
+/*************************************************************************************************/
+
 bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
 {    
     /* Process all parameters from both command-line and .ini file */
@@ -87,30 +92,41 @@ bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
                                "Local port for device connection").asString()
                                ); 
     
-    inputPortName          = "/" ;
-    inputPortName          += getName( rf.check("inputPort", 
-                               Value("/data:i"),
-                               "Input port that receives target hand configuration values").asString()
-                               );
+    setPortName             = "/" ;
+    setPortName             += getName( rf.check("setPort", 
+                            Value("/set:rpc"),
+                            "Input/Output port to set parameters").asString()
+                            );
     
-    skinCompPortName          = "/" ;
-    skinCompPortName          += getName( rf.check("skinCompPort", 
-                               Value("/skinComp:i"),
-                               "Input port that receives compensated skin data").asString()
-                               );
+    skinCompPortName        = "/" ;
+    skinCompPortName        += getName( rf.check("skinCompPort", 
+                            Value("/skinComp:i"),
+                            "Input port that receives compensated skin data").asString()
+                            );
     
-    outputPortName          = "/" ;
-    outputPortName          += getName( rf.check("outputPort", 
-                               Value("/data:o"),
-                               "Output port that sends grasp metric values").asString()
-                               );
+    inputOptPortName        = "/" ;
+    inputOptPortName        += getName( rf.check("inputOptPort", 
+                            Value("/data:i"),
+                            "Input port that receives target hand configuration values").asString()
+                            );
+    
+    outputOptPortName       = "/" ;
+    outputOptPortName       += getName( rf.check("outputOptPort", 
+                            Value("/data:o"),
+                            "Output port that sends grasp metric values").asString()
+                            );
 
+    inputGraspPortName      = "/" ;
+    inputGraspPortName      += getName( rf.check("inputGraspPort", 
+                            Value("/graspMetric:i"),
+                            "Input port that receives target hand configuration values").asString()
+                            );
     
-    setPortName          = "/" ;
-    setPortName          += getName( rf.check("setPort", 
-                               Value("/set:rpc"),
-                               "Input/Output port to set parameters").asString()
-                               );
+    outputGraspPortName     = "/" ;
+    outputGraspPortName     += getName( rf.check("outputGraspPort", 
+                            Value("/unitForces:o"),
+                            "Output port that sends grasp metric values").asString()
+                            );
 
     deviceName              = rf.check("deviceName", 
                               Value("remote_controlboard"), 
@@ -138,7 +154,7 @@ bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
     velocity                = rf.check("velocity", 
                               Value(HAND_DEF_VEL), 
                               "Speed of position movement").asDouble();
-			      
+                                
     maxVel                  = rf.check("maxVel", 
                               Value(MAX_VEL_DEF), 
                               "Maximum speed for FB control").asDouble();
@@ -151,32 +167,41 @@ bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
     
     /* open ports  */ 
     
-    if (!inputPort.open(inputPortName.c_str())) 
-    {
-        cout << getName() << ": unable to open port " << inputPortName.c_str() << endl;
-        return false;  // unable to open; let RFModule know so that it won't run
-    }
-    
     if (!setPort.open(setPortName.c_str())) 
     {
         cout << getName() << ": unable to open port " << setPortName.c_str() << endl;
         return false;  // unable to open; let RFModule know so that it won't run
     }
-
     
     if (!skinCompPort.open(skinCompPortName.c_str())) 
     {
         cout << getName() << ": unable to open port " << skinCompPortName.c_str() << endl;
         return false;  // unable to open; let RFModule know so that it won't run
     }
-    
-    if (!outputPort.open(outputPortName.c_str())) 
+    if (!inputOptPort.open(inputOptPortName.c_str())) 
     {
-        cout << getName() << ": unable to open port " << outputPortName.c_str() << endl;
+        cout << getName() << ": unable to open port " << inputOptPortName.c_str() << endl;
+        return false;  // unable to open; let RFModule know so that it won't run
+    }
+    
+    if (!outputOptPort.open(outputOptPortName.c_str())) 
+    {
+        cout << getName() << ": unable to open port " << outputOptPortName.c_str() << endl;
         return false;  // unable to open; let RFModule know so that it won't run
     }
 
+    if (!inputGraspPort.open(inputGraspPortName.c_str())) 
+    {
+        cout << getName() << ": unable to open port " << inputGraspPortName.c_str() << endl;
+        return false;  // unable to open; let RFModule know so that it won't run
+    }
     
+    if (!outputGraspPort.open(outputGraspPortName.c_str())) 
+    {
+        cout << getName() << ": unable to open port " << outputGraspPortName.c_str() << endl;
+        return false;  // unable to open; let RFModule know so that it won't run
+    }
+
     
     /* connect to remote device  */
     Property options;
@@ -246,7 +271,7 @@ bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
     for(int i = 0; (i < nAxes) && (i < activeJointsBottle.size()); i++)
         if( activeJointsBottle.get(i).asInt() == 1 )
         {
-	    cAxes++;
+        cAxes++;
             lim->getLimits(i, &jointLimitsMin[i], &jointLimitsMax[i]);
             if( i < jointsMinBottle.size() && jointsMinBottle.get(i).asDouble() > jointLimitsMin[i] && jointsMinBottle.get(i).asDouble() < jointLimitsMax[i])
                 jointLimitsMin[i] = jointsMinBottle.get(i).asDouble();
@@ -262,19 +287,19 @@ bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
     for (int i= 0; i < nAxes; i++)
     {
         if( activeJointsBottle.get(i).asInt() == 1 )
-	{
-	    controlledJoints[j]=i;
-	    j++;
-	}
+    {
+        controlledJoints[j]=i;
+        j++;
+    }
     }
     
     if (j==cAxes)
     {
         cout << "This is the list of controlled hand joints: " << endl;
-	for (int i= 0; i < cAxes; i++)
-	{
-	    cout << (int)controlledJoints[i] << " ";
-	}
+    for (int i= 0; i < cAxes; i++)
+    {
+        cout << (int)controlledJoints[i] << " ";
+    }
         cout << endl;
     }
     else
@@ -302,7 +327,7 @@ bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
     
     fprintf(stderr,"Now open the hand tactile control thread...\n");
        
-    handControlThread = new HandTactileControlThread(&robotDevice, &cartDevice, partName, &jointLimitsMin, &jointLimitsMax, &armRestPos, velocity, maxVel, period, &inputPort, &skinCompPort, &outputPort, &controlledJoints);
+    handControlThread = new HandTactileControlThread(&robotDevice, &cartDevice, partName, &jointLimitsMin, &jointLimitsMax, &armRestPos, velocity, maxVel, period, &skinCompPort, &inputOptPort, &outputOptPort, &inputGraspPort, &outputGraspPort, &controlledJoints);
 
     fprintf(stderr,"...done.\n");
     
@@ -320,18 +345,25 @@ bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
     return true;       // let the RFModule know everything went well
                        // so that it will then run the module
 }
-
+/*************************************************************************************************/
 bool HandTactileControlModule::interruptModule()
 {
-    inputPort.interrupt();
+    inputOptPort.interrupt();
+    outputOptPort.interrupt();
+    inputGraspPort.interrupt();
+    outputGraspPort.interrupt();
 
     return true;
 }
 
-
+/*************************************************************************************************/
 bool HandTactileControlModule::close()
 {
-    inputPort.close();
+    inputOptPort.close();
+    outputOptPort.close();
+    inputGraspPort.close();
+    outputGraspPort.close();
+
     robotDevice.close();
 
     /* stop the thread */
@@ -343,133 +375,38 @@ bool HandTactileControlModule::close()
 
     return true;
 }
-
+/*************************************************************************************************/
 /* Called periodically every getPeriod() seconds */ 
-
 bool HandTactileControlModule::updateModule()
 {
    return true;
 } 
-
-
-
+/*************************************************************************************************/
 double HandTactileControlModule::getPeriod()
 {
    /* module periodicity (seconds), called implicitly by myModule */
    return 0.5;
 }
 
-//**********************************
-  
-UserCmdThread::UserCmdThread(HandTactileControlThread *hcThread, RpcServer *sPort )
-{
-    handConThread=hcThread;
-    setPort=sPort; 
 
-}
+/*************************************************************************************************/  
+/*********************************** HandTactileControlThread  ***********************************/
+/*************************************************************************************************/
 
-bool UserCmdThread::threadInit()
-{
-    return true;
-}
-
-void UserCmdThread::checkUserCmd()
-{
-    Bottle userCmd, rep;
-    string msg = "";
-    string tmpSa, tmpSb;
-    int tmpI;
-    userCmd.clear();
-    if ( setPort->read(userCmd,true) )
-    {
-        
-	fprintf(stderr,"Got user message: %s\n", userCmd.toString().c_str());
-	
-	rep.clear();
-	//rep.addString("ack");
-	//setPort->reply(rep);
-	
-	tmpSa = userCmd.get(0).asString();
-	
-	if (tmpSa=="set")
-	{
-	    tmpSb = userCmd.get(1).asString();
-	    if (tmpSb =="mode")
-	    {
-		tmpI = userCmd.get(2).asInt();
-		fprintf(stderr,"Desired control mode is: %d\n", tmpI);
-	        fprintf(stderr,"Current control mode is: %d\n", handConThread->controlMode);
-	        handConThread->controlMode = tmpI;
-	        fprintf(stderr,"New control mode is: %d\n", handConThread->controlMode);
-		rep.addString("done");
-		rep.addInt(handConThread->controlMode);
-	        setPort->reply(rep);
-	    }
-	    else
-	    {
-		fprintf(stderr,"\n--ERROR: unidentified message--\n");
-		rep.addString("fail");
-	        setPort->reply(rep);
-	    }
-	    
-	}
-	else if (tmpSa=="get")
-	{
-	    tmpSb = userCmd.get(1).asString();
-	    if (tmpSb =="mode")
-	    {
-	        rep.addString("done");
-		rep.addInt(handConThread->controlMode);
-	        setPort->reply(rep);
-		fprintf(stderr,"Control mode sent is: %d\n", handConThread->controlMode);
-	    }
-	    else
-	    {
-		fprintf(stderr,"\n--ERROR: unidentified message--\n");
-		rep.addString("fail");
-	        setPort->reply(rep);
-	    }
-	  
-	}
-	else
-	{
-	    fprintf(stderr,"\n--ERROR: unidentified message--\n");
-	    rep.addString("fail");
-	    setPort->reply(rep);
-	}
-	
-    }
-  
-}
-
-void UserCmdThread::run()
-{
-  
-    while ( !isStopping() )
-    {
-        checkUserCmd(); //wait for a user commands to set some parameters of DynamicControl Thread
-    }
-
-}
-
-void UserCmdThread::threadRelease()
-{
-    
-
-}
-
-  
-//*********************************** 
-
-
-HandTactileControlThread::HandTactileControlThread(PolyDriver *robDev, PolyDriver *cartDev, string pName, Vector *jLimitsMin, Vector *jLimitsMax, Vector *aRestPos, double vel, double mV, int per, BufferedPort< Bottle > *iPort, BufferedPort< Vector > *sPort, BufferedPort< Bottle > *oPort, Vector *cJoints) : RateThread(per)
+HandTactileControlThread::HandTactileControlThread(PolyDriver *robDev, PolyDriver *cartDev, string pName, Vector *jLimitsMin, Vector *jLimitsMax, Vector *aRestPos, double vel, double mV, int per, BufferedPort< Vector > *sPort, BufferedPort< Bottle > *iPortOpt, BufferedPort< Bottle > *oPortOpt, BufferedPort< Bottle > *iPortGrasp, BufferedPort< Bottle > *oPortGrasp, Vector *cJoints) : RateThread(per)
 {
     robotDevice  = robDev;
     cartDevice  = cartDev;
     partName    = pName;
-    inputPort   = iPort;
     portSkinCompIn = sPort;
-    outputPort   = oPort;
+
+    inputOptPort   = iPortOpt;
+    outputOptPort   = oPortOpt;
+
+    inputGraspPort   = iPortGrasp;
+    outputGraspPort   = oPortGrasp;
+
+
     jointLimitsMin = jLimitsMin;
     jointLimitsMax = jLimitsMax;
     armRestPos     = aRestPos;
@@ -492,8 +429,7 @@ HandTactileControlThread::HandTactileControlThread(PolyDriver *robDev, PolyDrive
     ctrlJoints=controlledJointsVector->size();
     
 } 
-
-
+/*************************************************************************************************/
 bool HandTactileControlThread::threadInit() 
 {
     // Control and encoders interface    
@@ -548,22 +484,22 @@ bool HandTactileControlThread::threadInit()
     
     if (handName!="none")
     {
-	fingers[4]=th;
-	fingers[0]=in;
-	fingers[1]=mi;
-	fingers[2]=ri;
+    fingers[4]=th;
+    fingers[0]=in;
+    fingers[1]=mi;
+    fingers[2]=ri;
         fingers[3]=li;
     }
     else
     {
         cout << "WARNING: Part is not an arm and/or hand name is not correctly specified" << endl;
-	return false;
+    return false;
     }
     
     cout << "Controlling the following fingers:" << endl;
     for (int i = 0; i < N_FINGERS; i++)   // compute unitary forces applied on the fingertips, in the fingertip reference frame
     {
-	fprintf(stderr,"\n%s\n",fingers[i].getType().c_str()); 
+    fprintf(stderr,"\n%s\n",fingers[i].getType().c_str()); 
     }
     
     /*******************************/
@@ -571,7 +507,7 @@ bool HandTactileControlThread::threadInit()
     fingersSensitivityScale.resize(N_FINGERS,1); //typically: 5 fingertips
     for (int i= 0; i < N_FINGERS; i++)
     {
-	fingersSensitivityScale(i,0) = 1.0; //default
+    fingersSensitivityScale(i,0) = 1.0; //default
     }
     
     fingerTaxelsData.resize(N_FINGERS,N_TAXELS); //typically: 5 fingertips, 12 taxels per fingertip
@@ -601,23 +537,23 @@ bool HandTactileControlThread::threadInit()
     
     for (int i= 0; i < ctrlJoints; i++)
     {
-	controlledJoints[i] = (*controlledJointsVector)[i];
+    controlledJoints[i] = (*controlledJointsVector)[i];
     }
     
     for (int i= 0; i < ctrlJoints; i++)
     {
-	//handVelRef[i] = velocity;
+    //handVelRef[i] = velocity;
           handVelRef[i] = (HAND_DEF_TARGET[i] - HAND_DEF_HOME[i]) / HAND_VEL_COEFF;
-	  if (handVelRef[i] < HAND_MIN_VEL)
-	  {
-	      handVelRef[i] = HAND_MIN_VEL;
-	  }
+      if (handVelRef[i] < HAND_MIN_VEL)
+      {
+          handVelRef[i] = HAND_MIN_VEL;
+      }
     }
     
     for (int i= 0; i < nAxes; i++)
     {
-	//armFullConf[i] = ARM_DEF_HOME[i];
-	armFullConf[i] = (*armRestPos)[i];
+    //armFullConf[i] = ARM_DEF_HOME[i];
+    armFullConf[i] = (*armRestPos)[i];
     }
     
     pos->setRefSpeeds(ctrlJoints,controlledJoints,handVelRef);
@@ -630,7 +566,7 @@ bool HandTactileControlThread::threadInit()
     cout << "JOINTS: ";
     for (int i= 0; i < ctrlJoints; i++)
     {
-	cout << controlledJoints[i] << " ";
+    cout << controlledJoints[i] << " ";
     }
     cout << endl;
     
@@ -639,10 +575,10 @@ bool HandTactileControlThread::threadInit()
     for (int i= 0; i < nAxes; i++)
     {
         if (controlledJoints[j]==i)
-	{
-	    j++; 
-	    cout << (*jointLimitsMin)[i] << " ";
-	}
+    {
+        j++; 
+        cout << (*jointLimitsMin)[i] << " ";
+    }
     }
     cout << endl;
     
@@ -651,17 +587,17 @@ bool HandTactileControlThread::threadInit()
     for (int i= 0; i < nAxes; i++)
     {
         if (controlledJoints[j]==i)
-	{
-	    j++; 
-	    cout << (*jointLimitsMax)[i] << " ";
-	}
+    {
+        j++; 
+        cout << (*jointLimitsMax)[i] << " ";
+    }
     }
     cout << endl;
     
     cout << "MAX VEL: ";
     for (int i= 0; i < ctrlJoints; i++)
     {
-	cout << maxV << " ";
+    cout << maxV << " ";
     }
     cout << endl;
     
@@ -670,11 +606,11 @@ bool HandTactileControlThread::threadInit()
     for (int i= 0; i < nAxes; i++)
     {
         if (controlledJoints[j]==i)
-	{
-	    j++; 
-	    pos->getRefSpeed(i,&refSpeed);
-	    cout << refSpeed << " ";
-	}
+    {
+        j++; 
+        pos->getRefSpeed(i,&refSpeed);
+        cout << refSpeed << " ";
+    }
     }
     cout << endl;
     
@@ -683,7 +619,7 @@ bool HandTactileControlThread::threadInit()
     cout << "GOING TO ARM CONFIGURATION: " << endl;
     for (int i= 0; i < nAxes; i++)
     {        
-	cout << (*armRestPos)[i] << " ";
+    cout << (*armRestPos)[i] << " ";
     }
     cout << endl;
     
@@ -696,7 +632,7 @@ bool HandTactileControlThread::threadInit()
 
     return true;
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::goHomeArm()
 {
     ctrlMode->getControlModes(controlModesArm);
@@ -706,20 +642,20 @@ void HandTactileControlThread::goHomeArm()
     for(int i=0; i<nAxes; i++)
     {
         if (controlModesArm[i]!=VOCAB_CM_POSITION)
-	{
-	    ctrlMode->setControlMode(i,VOCAB_CM_POSITION);
-	}
+    {
+        ctrlMode->setControlMode(i,VOCAB_CM_POSITION);
+    }
     }
 
     //fprintf(stderr,"\ngoHomeArm - step_2\n");
     
     for (int i= 0; i < nAxes; i++)
     {
-	armFullConf[i] = (*armRestPos)[i];
+    armFullConf[i] = (*armRestPos)[i];
     }
 
     //fprintf(stderr,"\ngoHomeArm - step_3\n");
-	    
+        
     pos->positionMove(armFullConf);  // position move command using bell-shaped velocities, non-blocking
 
     //fprintf(stderr,"\ngoHomeArm - step_4\n");
@@ -731,8 +667,8 @@ void HandTactileControlThread::goHomeArm()
     while(!done && elapsedTime<5.0)
     {
         pos->checkMotionDone(&done);
-	Time::delay(0.04);
-	elapsedTime= Time::now()-startTime;
+    Time::delay(0.04);
+    elapsedTime= Time::now()-startTime;
     }
     /***********************************************************/
     
@@ -749,23 +685,23 @@ void HandTactileControlThread::goHomeArm()
     cout << "Default hand orientation set: " << def_hand_o.toString().c_str() << endl;
     
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::setArm(Vector armConf)
 {
     ctrlMode->getControlModes(controlModesArm);
     for(int i=0; i<nAxes; i++)
     {
         if (controlModesArm[i]!=VOCAB_CM_POSITION)
-	{
-	    ctrlMode->setControlMode(i,VOCAB_CM_POSITION);
-	}
+    {
+        ctrlMode->setControlMode(i,VOCAB_CM_POSITION);
+    }
     }
     
     for (int i= 0; i < nAxes; i++)
     {
-	armFullConf[i] = armConf[i];
+    armFullConf[i] = armConf[i];
     }
-	    
+        
     pos->positionMove(armFullConf);  // position move command using bell-shaped velocities, non-blocking
     
     /********** COMMENT THIS TO MAKE IT NON-BLOCKING ***********/
@@ -775,8 +711,8 @@ void HandTactileControlThread::setArm(Vector armConf)
     while(!done && elapsedTime<5.0)
     {
         pos->checkMotionDone(&done);
-	Time::delay(0.04);
-	elapsedTime= Time::now()-startTime;
+    Time::delay(0.04);
+    elapsedTime= Time::now()-startTime;
     }
     /***********************************************************/
     
@@ -793,7 +729,7 @@ void HandTactileControlThread::setArm(Vector armConf)
     cout << "Default hand orientation set: " << def_hand_o.toString().c_str() << endl;
     
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::setDefHandPoseToThis()
 {   
     Vector x0,o0;
@@ -806,7 +742,7 @@ void HandTactileControlThread::setDefHandPoseToThis()
     cout << "Default hand orientation set: " << def_hand_o.toString().c_str() << endl;
     
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::handMoveToPose(Vector xd, Vector od)
 {
     Vector x0,o0;
@@ -831,121 +767,119 @@ void HandTactileControlThread::handMoveToPose(Vector xd, Vector od)
   
 }
 
-
-
+/*************************************************************************************************/
 bool HandTactileControlThread::readFingerSkinCompData(bool block)  
 {
 
-	Vector *iCubSkinData = portSkinCompIn->read(block);  // block is typically false...
-	//fprintf(stderr,"\n\n\n\n\n\n\n\n\nReceived a tactile vector of size = %i\n\n\n\n\n\n\n\n", (int)(iCubSkinData->size()));
-	
+    Vector *iCubSkinData = portSkinCompIn->read(block);  // block is typically false...
+    //fprintf(stderr,"\n\n\n\n\n\n\n\n\nReceived a tactile vector of size = %i\n\n\n\n\n\n\n\n", (int)(iCubSkinData->size()));
     
-	//TODO generalize fingers number
+    
+    //TODO generalize fingers number
         if (iCubSkinData) 
-	{
-		//fprintf(stderr,"\n");
-		//fprintf(stderr,"\n");
-		//fprintf(stderr,"FINGERS TAXELS:");
-		//fprintf(stderr,"\n");
-		
-	        for(int i = 0; i < N_FINGERS; i++)
-		{
-			for (int j = 0; j < N_TAXELS; j++)
-			{
-			    fingerTaxelsDataBinary(i,j) = 0.0;
+    {
+        //fprintf(stderr,"\n");
+        //fprintf(stderr,"FINGERS TAXELS:");
+        //fprintf(stderr,"\n");
+        
+            for(int i = 0; i < N_FINGERS; i++)
+        {
+            for (int j = 0; j < N_TAXELS; j++)
+            {
+                fingerTaxelsDataBinary(i,j) = 0.0;
                 fingerTaxelsDataContacts(i,j) = 0.0;
-				fingerTaxelsData(i,j) = fingersSensitivityScale(i,0) * (*iCubSkinData)[12*i + j];
-				
-				if (fingerTaxelsData(i,j) > TOUCH_NOISE_THR)
-				{
-				    fingerTaxelsDataBinary(i,j) = 1.0;
-				}
-				if (fingerTaxelsData(i,j) > TOUCH_CONTACT_THR)
-				{
-				    fingerTaxelsDataContacts(i,j) = 1.0;
-				}
-				//fprintf(stderr,"%.1lf  ", (*iCubSkinData)[12*i + j]);
-				//fprintf(stderr,"%.1lf  ", fingerTaxelsDataBinary(i,j));
-			}
-			//fprintf(stderr,"\n");
-		}
-		
-		//fprintf(stderr,"\n");
-		//fprintf(stderr,"\n");
-	}
+                fingerTaxelsData(i,j) = fingersSensitivityScale(i,0) * (*iCubSkinData)[12*i + j];
+                
+                if (fingerTaxelsData(i,j) > TOUCH_NOISE_THR)
+                {
+                    fingerTaxelsDataBinary(i,j) = 1.0;
+                }
+                if (fingerTaxelsData(i,j) > TOUCH_CONTACT_THR)
+                {
+                    fingerTaxelsDataContacts(i,j) = 1.0;
+                }
+                //fprintf(stderr,"%.1lf  ", (*iCubSkinData)[12*i + j]);
+                //fprintf(stderr,"%.1lf  ", fingerTaxelsDataBinary(i,j));
+            }
+            //fprintf(stderr,"\n");
+        }
+        
+        //fprintf(stderr,"\n");
+        //fprintf(stderr,"\n");
+    }
 
-	return true;
+    return true;
 }
 
-
+/*************************************************************************************************/
 void HandTactileControlThread::updateFingertipForces()
 {
 
-	std::vector<double> unitVector(3);
-	std::vector<double> tmpUV(3);
-	std::vector<double> newUV(3);
-	std::vector<double> prevUV(3);
-	
-	//fprintf(stderr,"\n1\n");
-	
-	for (int i = 0; i < N_FINGERS; i++)   // compute unitary forces applied on the fingertips, in the fingertip reference frame
-	{
-	    
-	    //fprintf(stderr,"\n2_%i\n", i);
-	    for (int k=0; k<3; k++)
-	    {
-	        newUV[k] = 0.0;
-	        prevUV[k] = 0.0;
-	    }
-	
-	    for(int j = 0; j < N_TAXELS; j++)
-	    {
-		    
-		    //fprintf(stderr,"\n3_%i\n", j);
-		    
-	            getUnitVector(j,unitVector);
+    std::vector<double> unitVector(3);
+    std::vector<double> tmpUV(3);
+    std::vector<double> newUV(3);
+    std::vector<double> prevUV(3);
+    
+    //fprintf(stderr,"\n1\n");
+    
+    for (int i = 0; i < N_FINGERS; i++)   // compute unitary forces applied on the fingertips, in the fingertip reference frame
+    {
+        
+        //fprintf(stderr,"\n2_%i\n", i);
+        for (int k=0; k<3; k++)
+        {
+            newUV[k] = 0.0;
+            prevUV[k] = 0.0;
+        }
+    
+        for(int j = 0; j < N_TAXELS; j++)
+        {
+            
+            //fprintf(stderr,"\n3_%i\n", j);
+            
+                getUnitVector(j,unitVector);
 
-		    tmpUV[0] = fingerTaxelsDataBinary(i,j)*unitVector[0];
-		    tmpUV[1] = fingerTaxelsDataBinary(i,j)*unitVector[1];
-		    tmpUV[2] = fingerTaxelsDataBinary(i,j)*unitVector[2];
-		    
-		    sumUnitVectors(prevUV, tmpUV, newUV);
-		    
-		    for (int k=0; k<3; k++)
-		    {
-			prevUV[k] = newUV[k];
-		    }    		    
-		    
-	    }
-	    
-	    for (int k=0; k<3; k++)
-	    {
-		fingertipForcesLocal(i,k) = newUV[k];
-	    }    
-	    
-	}
-	
-	// transform the fingertips forces to the hand palm reference frame
-	
-	Vector fingAngs;
-	Vector fingPos;
-	Matrix tipFrame(4,4);
-	Matrix tipFrameT(4,4);
-	
-	//fprintf(stderr,"\n4\n");
-	
-	for (int i = 0; i < N_FINGERS; i++)   // transforms the unitary forces applied on the fingertips, from the fingertips reference frame to the hand palm reference frame
-	{
-	    //fprintf(stderr,"\n%s\n",fingers[i].getType().c_str()); 
-	    //tipFrame.zero();
-	    fingAngs.clear();
-	    encs->getEncoders(encoders.data());
-	    fingers[i].getChainJoints(encoders,fingAngs);                // wrt the end-effector frame
-	    fingertipPose.setRow(i, fingers[i].EndEffPosition((M_PI/180.0)*fingAngs)); 
-	    tipFrame=fingers[i].getH((M_PI/180.0)*fingAngs);
-	    tipFrameT=tipFrame.transposed();
-	    
-	    //fprintf(stderr,"\n5_%i\n",i);
+            tmpUV[0] = fingerTaxelsDataBinary(i,j)*unitVector[0];
+            tmpUV[1] = fingerTaxelsDataBinary(i,j)*unitVector[1];
+            tmpUV[2] = fingerTaxelsDataBinary(i,j)*unitVector[2];
+            
+            sumUnitVectors(prevUV, tmpUV, newUV);
+            
+            for (int k=0; k<3; k++)
+            {
+            prevUV[k] = newUV[k];
+            }                
+            
+        }
+        
+        for (int k=0; k<3; k++)
+        {
+        fingertipForcesLocal(i,k) = newUV[k];
+        }    
+        
+    }
+    
+    // transform the fingertips forces to the hand palm reference frame
+    
+    Vector fingAngs;
+    Vector fingPos;
+    Matrix tipFrame(4,4);
+    Matrix tipFrameT(4,4);
+    
+    //fprintf(stderr,"\n4\n");
+    
+    for (int i = 0; i < N_FINGERS; i++)   // transforms the unitary forces applied on the fingertips, from the fingertips reference frame to the hand palm reference frame
+    {
+        //fprintf(stderr,"\n%s\n",fingers[i].getType().c_str()); 
+        //tipFrame.zero();
+        fingAngs.clear();
+        encs->getEncoders(encoders.data());
+        fingers[i].getChainJoints(encoders,fingAngs);                // wrt the end-effector frame
+        fingertipPose.setRow(i, fingers[i].EndEffPosition((M_PI/180.0)*fingAngs)); 
+        tipFrame=fingers[i].getH((M_PI/180.0)*fingAngs);
+        tipFrameT=tipFrame.transposed();
+        
+        //fprintf(stderr,"\n5_%i\n",i);
 
         /*****
         fprintf(stderr,"\nFinger_%i_kin\n",i);
@@ -960,25 +894,26 @@ void HandTactileControlThread::updateFingertipForces()
         fprintf(stderr,"\n\n");
         /******/
              
-	       
-	    for (int k=0; k<3; k++)
-	    {
-	        //fprintf(stderr,"\n6_%i\n",k);
-	        fingertipForcesGlobal(i,k) = tipFrameT(k,0)*fingertipForcesLocal(i,0) + tipFrameT(k,1)*fingertipForcesLocal(i,1) + tipFrameT(k,2)*fingertipForcesLocal(i,2);
-	    }
-	    
-	}
-	    
-	//fprintf(stderr,"\n6\n");
-	
-	//Vector tip_x=tipFrame.getCol(3);
-	//Vector tip_o=yarp::math::dcm2axis(tipFrame);
-	//cartCtrl->attachTipFrame(tip_x,tip_o);                // establish the new controlled frame
-	//cartCtrl->getPose(fingPos,o);                             // so as the target will be attained with the finger tip
-	//cartCtrl->removeTipFrame();   
-	    
+           
+        for (int k=0; k<3; k++)
+        {
+            //fprintf(stderr,"\n6_%i\n",k);
+            fingertipForcesGlobal(i,k) = tipFrameT(k,0)*fingertipForcesLocal(i,0) + tipFrameT(k,1)*fingertipForcesLocal(i,1) + tipFrameT(k,2)*fingertipForcesLocal(i,2);
+        }
+        
+    }
+        
+    //fprintf(stderr,"\n6\n");
+    
+    //Vector tip_x=tipFrame.getCol(3);
+    //Vector tip_o=yarp::math::dcm2axis(tipFrame);
+    //cartCtrl->attachTipFrame(tip_x,tip_o);                // establish the new controlled frame
+    //cartCtrl->getPose(fingPos,o);                             // so as the target will be attained with the finger tip
+    //cartCtrl->removeTipFrame();   
+        
 }
 
+/*************************************************************************************************/
 void HandTactileControlThread::sumUnitVectors(std::vector<double>& A, std::vector<double>& B, std::vector<double>& res)
 {
     
@@ -1002,118 +937,118 @@ void HandTactileControlThread::sumUnitVectors(std::vector<double>& A, std::vecto
     
 }
     
-
+/*************************************************************************************************/
 void HandTactileControlThread::getUnitVector(int index,std::vector<double>& unitVector)
 {
 
-	switch(index)
-	{
+    switch(index)
+    {
 
-	case 0:
-		//it should remain the same		
-		unitVector[0] = -1.0;
-		unitVector[1] = 0.0;
-		unitVector[2] = 0.0;
-		break;
+    case 0:
+        //it should remain the same        
+        unitVector[0] = -1.0;
+        unitVector[1] = 0.0;
+        unitVector[2] = 0.0;
+        break;
 
-	case 10:
-		// tactile 11 (index 10) previous 2 (index 1)
-		unitVector[0] = -0.39956;
-		unitVector[1] = 0.0;
-		unitVector[2] = 0.91671;
-		break;
+    case 10:
+        // tactile 11 (index 10) previous 2 (index 1)
+        unitVector[0] = -0.39956;
+        unitVector[1] = 0.0;
+        unitVector[2] = 0.91671;
+        break;
 
-	case 1:
-		// tactile 2 (index 1) previous 3 (index 2)
-		unitVector[0] = -0.39956;
-		unitVector[1] = 0.0;
-		unitVector[2] = 0.91671;
-		break;
+    case 1:
+        // tactile 2 (index 1) previous 3 (index 2)
+        unitVector[0] = -0.39956;
+        unitVector[1] = 0.0;
+        unitVector[2] = 0.91671;
+        break;
 
-	case 2:
-		// tactile 3 (index 2) previous 4 (index 3)
-		unitVector[0] = -1.0;
-		unitVector[1] = 0.0;
-		unitVector[2] = 0.0;
-		break;
+    case 2:
+        // tactile 3 (index 2) previous 4 (index 3)
+        unitVector[0] = -1.0;
+        unitVector[1] = 0.0;
+        unitVector[2] = 0.0;
+        break;
 
-	case 3:
-		// tactile 4 (index 3) previous 5 (index 4)
-		unitVector[0] = -0.78673;
-		unitVector[1] = 0.60316;
-		unitVector[2] = 0.13140;
-		break;
+    case 3:
+        // tactile 4 (index 3) previous 5 (index 4)
+        unitVector[0] = -0.78673;
+        unitVector[1] = 0.60316;
+        unitVector[2] = 0.13140;
+        break;
 
-	case 4:
-		// tactile 5 (index 4) previous 6 (index 5)
-		unitVector[0] = -0.30907;
-		unitVector[1] = 0.47765;
-		unitVector[2] = 0.82239;
-		break;
+    case 4:
+        // tactile 5 (index 4) previous 6 (index 5)
+        unitVector[0] = -0.30907;
+        unitVector[1] = 0.47765;
+        unitVector[2] = 0.82239;
+        break;
 
-	case 5:
-		// tactile 6 (index 5) previous 7 (index 6)
-		unitVector[0] = 0.0;
-		unitVector[1] = 1.0;
-		unitVector[2] = 0.0;
-		break;
+    case 5:
+        // tactile 6 (index 5) previous 7 (index 6)
+        unitVector[0] = 0.0;
+        unitVector[1] = 1.0;
+        unitVector[2] = 0.0;
+        break;
 
-	case 6:
-		// tactile 7 (index 6) previous 8 (index 7)
-		unitVector[0] = 0.30907;
-		unitVector[1] = 0.47765;
-		unitVector[2] = 0.82239;
-		break;
+    case 6:
+        // tactile 7 (index 6) previous 8 (index 7)
+        unitVector[0] = 0.30907;
+        unitVector[1] = 0.47765;
+        unitVector[2] = 0.82239;
+        break;
 
-	case 7:
-		// tactile 8 (index 7) previous 9 (index 8)
-		unitVector[0] = 0.78673;
-		unitVector[1] = 0.60316;
-		unitVector[2] = 0.13140;
-		break;
+    case 7:
+        // tactile 8 (index 7) previous 9 (index 8)
+        unitVector[0] = 0.78673;
+        unitVector[1] = 0.60316;
+        unitVector[2] = 0.13140;
+        break;
 
-	case 8:
-		// tactile 9 (index 8) previous 10 (index 9)
-		unitVector[0] = 1.0;
-		unitVector[1] = 0.0;
-		unitVector[2] = 0.0;
-		break;
+    case 8:
+        // tactile 9 (index 8) previous 10 (index 9)
+        unitVector[0] = 1.0;
+        unitVector[1] = 0.0;
+        unitVector[2] = 0.0;
+        break;
 
-	case 9:
-		// tactile 10 (index 9) previous 11 (index 10)
-		unitVector[0] = 0.39956;
-		unitVector[1] = 0.0;
-		unitVector[2] = 0.91671;
-		break;
+    case 9:
+        // tactile 10 (index 9) previous 11 (index 10)
+        unitVector[0] = 0.39956;
+        unitVector[1] = 0.0;
+        unitVector[2] = 0.91671;
+        break;
 
-	case 11:
-		// tactile 12 (index 11) previous 12 (index 11)
-		unitVector[0] = 0.39956;
-		unitVector[1] = 0.0;
-		unitVector[2] = 0.91671;
-		break;
-	}
+    case 11:
+        // tactile 12 (index 11) previous 12 (index 11)
+        unitVector[0] = 0.39956;
+        unitVector[1] = 0.0;
+        unitVector[2] = 0.91671;
+        break;
+    }
 
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::updateRef()
 {
   
     fprintf(stderr,"\nUpdating target reference...\n");
-	
+    
     for (int i=0; i<nParameters; i++)  //Cartesian Y and Z position
     {
-	target_hand_p[i+1] = def_hand_p[i+1] + ctrl_param[i]; 
+    target_hand_p[i+1] = def_hand_p[i+1] + ctrl_param[i]; 
     }
     
     if (nParameters<3)    //Cartesian X position
     {
-	target_hand_p[0] = def_hand_p[0];
+    target_hand_p[0] = def_hand_p[0];
     }
     
     for (int i=0; i<4; i++)
     {
-	target_hand_o[i] = def_hand_o[i]; 
+    target_hand_o[i] = def_hand_o[i]; 
     }
     
     cout << "Target hand position set: " << target_hand_p.toString().c_str() << endl;
@@ -1122,28 +1057,28 @@ void HandTactileControlThread::updateRef()
     fprintf(stderr,"...done.\n");
     
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::openHand()   
 {
     ctrlMode->getControlModes(ctrlJoints, controlledJoints, controlModesHand);
     for(int i=0; i<ctrlJoints; i++)
     {
         if (controlModesHand[i]!=VOCAB_CM_POSITION)
-	{
-	    ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION);
-	}
+    {
+        ctrlMode->setControlMode(controlledJoints[i],VOCAB_CM_POSITION);
+    }
     }
     
     for(int i=0; i<ctrlJoints; i++)
     {
         //handPosRef[i]=HAND_DEF_HOME[i];
-	handPosRef[i] = (*armRestPos)[i+7];
+    handPosRef[i] = (*armRestPos)[i+7];
     }
-	    
+        
     pos->positionMove(ctrlJoints, controlledJoints, handPosRef);  // position move command using bell-shaped velocities, non-blocking
     
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::stopFinger(int index)
 {
     int cMode3[3];
@@ -1154,102 +1089,102 @@ void HandTactileControlThread::stopFinger(int index)
     int js1[1];
     
     switch(index)
-	{
+    {
 
-	case 4: //thumb
-	        
-		js3[0]=8;
-		js3[1]=9;
-		js3[2]=10;
-		
-	        ctrlMode->getControlModes(3, js3, cMode3);
-                for (int i=0; i<3; i++)		
-		{
-		    if (cMode3[i]!=VOCAB_CM_POSITION)
-		    {
-		        ctrlMode->setControlMode(js3[i],VOCAB_CM_POSITION);
-		    }
-		}
-		
-		pos->stop(8);
-		pos->stop(9);
-		pos->stop(10);
-		
-		break;
+    case 4: //thumb
+            
+        js3[0]=8;
+        js3[1]=9;
+        js3[2]=10;
+        
+            ctrlMode->getControlModes(3, js3, cMode3);
+                for (int i=0; i<3; i++)        
+        {
+            if (cMode3[i]!=VOCAB_CM_POSITION)
+            {
+                ctrlMode->setControlMode(js3[i],VOCAB_CM_POSITION);
+            }
+        }
+        
+        pos->stop(8);
+        pos->stop(9);
+        pos->stop(10);
+        
+        break;
 
-	case 0: //index
-	  
+    case 0: //index
+      
                 js2[0]=11;
-		js2[1]=12;
-		
-	        ctrlMode->getControlModes(2, js2, cMode2);
-                for (int i=0; i<2; i++)		
-		{
-		    if (cMode2[i]!=VOCAB_CM_POSITION)
-		    {
-		        ctrlMode->setControlMode(js2[i],VOCAB_CM_POSITION);
-		    }
-		}	  
-	  
-		pos->stop(11);
-		pos->stop(12);
-		
-		break;
+        js2[1]=12;
+        
+            ctrlMode->getControlModes(2, js2, cMode2);
+                for (int i=0; i<2; i++)        
+        {
+            if (cMode2[i]!=VOCAB_CM_POSITION)
+            {
+                ctrlMode->setControlMode(js2[i],VOCAB_CM_POSITION);
+            }
+        }      
+      
+        pos->stop(11);
+        pos->stop(12);
+        
+        break;
 
-	case 1: //middle
-	  
-	        js2[0]=13;
-		js2[1]=14;
-		
-	        ctrlMode->getControlModes(2, js2, cMode2);
-                for (int i=0; i<2; i++)		
-		{
-		    if (cMode2[i]!=VOCAB_CM_POSITION)
-		    {
-		        ctrlMode->setControlMode(js2[i],VOCAB_CM_POSITION);
-		    }
-		}
-	  
-		pos->stop(13);
-		pos->stop(14);
-		break;
+    case 1: //middle
+      
+            js2[0]=13;
+        js2[1]=14;
+        
+            ctrlMode->getControlModes(2, js2, cMode2);
+                for (int i=0; i<2; i++)        
+        {
+            if (cMode2[i]!=VOCAB_CM_POSITION)
+            {
+                ctrlMode->setControlMode(js2[i],VOCAB_CM_POSITION);
+            }
+        }
+      
+        pos->stop(13);
+        pos->stop(14);
+        break;
 
-	case 2: //ring
-	  
-	        js1[0]=15;
-		
-	        ctrlMode->getControlModes(1, js1, cMode1);
-                for (int i=0; i<1; i++)		
-		{
-		    if (cMode1[i]!=VOCAB_CM_POSITION)
-		    {
-		        ctrlMode->setControlMode(js1[i],VOCAB_CM_POSITION);
-		    }
-		}
-	  
-		pos->stop(15);
-		break;
+    case 2: //ring
+      
+            js1[0]=15;
+        
+            ctrlMode->getControlModes(1, js1, cMode1);
+                for (int i=0; i<1; i++)        
+        {
+            if (cMode1[i]!=VOCAB_CM_POSITION)
+            {
+                ctrlMode->setControlMode(js1[i],VOCAB_CM_POSITION);
+            }
+        }
+      
+        pos->stop(15);
+        break;
 
-	case 3: //little
-	  
-	        js1[0]=15;
-		
-	        ctrlMode->getControlModes(1, js1, cMode1);
-                for (int i=0; i<1; i++)		
-		{
-		    if (cMode1[i]!=VOCAB_CM_POSITION)
-		    {
-		        ctrlMode->setControlMode(js1[i],VOCAB_CM_POSITION);
-		    }
-		}  
-	
-		pos->stop(15);
-		break;
+    case 3: //little
+      
+            js1[0]=15;
+        
+            ctrlMode->getControlModes(1, js1, cMode1);
+                for (int i=0; i<1; i++)        
+        {
+            if (cMode1[i]!=VOCAB_CM_POSITION)
+            {
+                ctrlMode->setControlMode(js1[i],VOCAB_CM_POSITION);
+            }
+        }  
+    
+        pos->stop(15);
+        break;
 
-	}
+    }
       
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::checkFingersContacts(bool *contactsList)
 {
     double avgPressure;
@@ -1257,14 +1192,14 @@ void HandTactileControlThread::checkFingersContacts(bool *contactsList)
     {  
         avgPressure = 0.0;
         for (int j=0;j<N_TAXELS;j++)
-	{
-	    avgPressure += fingerTaxelsDataContacts(i,j);
-	}
-	if (avgPressure > 0.0)
-	{
-	    contactsList[i] = true;
-	    fprintf(stderr,"\n\n\nDetected contact on finger %i. Average taxles pressure is = %.2lf.\n\n\n", i, avgPressure);
-	}
+    {
+        avgPressure += fingerTaxelsDataContacts(i,j);
+    }
+    if (avgPressure > 0.0)
+    {
+        contactsList[i] = true;
+        fprintf(stderr,"\n\n\nDetected contact on finger %i. Average taxles pressure is = %.2lf.\n\n\n", i, avgPressure);
+    }
     else
     {
         contactsList[i] = false;
@@ -1272,7 +1207,7 @@ void HandTactileControlThread::checkFingersContacts(bool *contactsList)
     
     }
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::squeezingStep()   
 {
      /********* POSTION DIRECT  *********
@@ -1317,7 +1252,7 @@ void HandTactileControlThread::squeezingStep()
     Time::delay(1.0);
     fprintf(stderr,"\n...done.\n");
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::closeHandToContact()   
 {
     /********* POSTION DIRECT  *********
@@ -1423,7 +1358,7 @@ void HandTactileControlThread::closeHandToContact()
     } 
     
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::checkMotionDone_posDir_handGrasp(bool &done)
 {
     done=true; //optimistic robot!
@@ -1438,7 +1373,7 @@ void HandTactileControlThread::checkMotionDone_posDir_handGrasp(bool &done)
     } 
      
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::computeGraspMetric()
 {
     fprintf(stderr,"Read tactile data...\n");
@@ -1487,14 +1422,14 @@ void HandTactileControlThread::computeGraspMetric()
   
   
 }
-
+/*************************************************************************************************/
 void HandTactileControlThread::readData() //non-blocking
 {
     readEncs(); //non-blocking
     readFingerSkinCompData(); //non-blocking
 }
     
-
+/*************************************************************************************************/
 void HandTactileControlThread::readEncs(bool v)
 {
   
@@ -1523,11 +1458,11 @@ void HandTactileControlThread::readEncs(bool v)
     }
     
 }
-
-bool HandTactileControlThread::readInputPort()
+/*************************************************************************************************/
+bool HandTactileControlThread::readInputPort() // Target Optimization
 {
     
-    if(Bottle *bot=inputPort->read(false))  // when control parameters (e.g. target hand pose) are received
+    if(Bottle *bot=inputOptPort->read(false))  // when control parameters (e.g. target hand pose) are received
     {
         if (bot->size() != nParameters)
         {
@@ -1549,8 +1484,7 @@ bool HandTactileControlThread::readInputPort()
     return false;
   
 }
-
-
+/*************************************************************************************************/
 void HandTactileControlThread::dumpData()
 {
     /*
@@ -1571,10 +1505,36 @@ void HandTactileControlThread::dumpData()
     */
   
 }
+/*************************************************************************************************/
+void HandTactileControlThread::read_sendGraspMetric(){
+    yDebug("read_sendGraspMetric");
+    bool done=false;
+    double elapsedTime=0.0;
+    double startTime=Time::now();
+    Bottle *bot;
 
-void HandTactileControlThread::sendData()
+    while(!done && elapsedTime<5.0)
+    {
+        bot=inputGraspPort->read(false);
+        Time::delay(0.04);
+        elapsedTime= Time::now()-startTime;
+        if(bot!=NULL)
+            done=true;
+    }
+    if(!done)
+        yError("Did not receive a Bottle from grap metric during 5 seconds...");
+    else {
+        Bottle &outBottle = outputOptPort->prepare();
+        outBottle.clear();
+        outBottle.addList() = *bot;
+        outputOptPort->write();
+    }
+}
+/*************************************************************************************************/
+void HandTactileControlThread::sendUnitForces()
 {
-    Bottle &outBottle = outputPort->prepare();
+    yDebug("sendUnitForces");
+    Bottle &outBottle = outputGraspPort->prepare();
     outBottle.clear();
 
     //Unit vectors of the overall distributed forces applied on the fingertips, with respect to a global reference frame centered in the hand palm
@@ -1596,19 +1556,19 @@ void HandTactileControlThread::sendData()
 
     
     /*********  THUMB 3D POSITION *******/
-    outBottle.addDouble(fingertipPose(4,0));	//X Coordinate
-    outBottle.addDouble(fingertipPose(4,1));	//Y Coordinate
-    outBottle.addDouble(fingertipPose(4,2));	//Z Coordinate
+    outBottle.addDouble(fingertipPose(4,0));    //X Coordinate
+    outBottle.addDouble(fingertipPose(4,1));    //Y Coordinate
+    outBottle.addDouble(fingertipPose(4,2));    //Z Coordinate
 
     /*********  INDEX 3D POSITION *******/
-    outBottle.addDouble(fingertipPose(0,0));	//X Coordinate
-    outBottle.addDouble(fingertipPose(0,1));	//Y Coordinate
-    outBottle.addDouble(fingertipPose(0,2));	//Z Coordinate
+    outBottle.addDouble(fingertipPose(0,0));    //X Coordinate
+    outBottle.addDouble(fingertipPose(0,1));    //Y Coordinate
+    outBottle.addDouble(fingertipPose(0,2));    //Z Coordinate
 
     /*********  MIDDLE 3D POSITION *******/
-    outBottle.addDouble(fingertipPose(1,0));	//X Coordinate
-    outBottle.addDouble(fingertipPose(1,1));	//Y Coordinate
-    outBottle.addDouble(fingertipPose(1,2));	//Z Coordinate
+    outBottle.addDouble(fingertipPose(1,0));    //X Coordinate
+    outBottle.addDouble(fingertipPose(1,1));    //Y Coordinate
+    outBottle.addDouble(fingertipPose(1,2));    //Z Coordinate
 
     /*************
 
@@ -1623,12 +1583,11 @@ void HandTactileControlThread::sendData()
         }
     }
     /**************/
-
-    outputPort->write(); //sends the unit vector forces applied on the fingertips
+    yDebug("sendUnitForces: write");
+    outputGraspPort->write(); //sends the unit vector forces applied on the fingertips
   
 }
-
-
+/*************************************************************************************************/
 void HandTactileControlThread::run()
 {
     ctrlStep++;  
@@ -1674,7 +1633,8 @@ void HandTactileControlThread::run()
         closeHandToContact(); // Checking tactile sensors inside here. Stop each finger after contact. Blocking. 
         //squeezingStep(); // Close the fingers a bit more to improve grasp robustness.
         computeGraspMetric(); // Based on final touch configuration from previous step.
-        sendData(); // Send grasp metric to optimization engine.
+        sendUnitForces(); // Send Unit Forces to compute grasp metric to optimization engine.
+        read_sendGraspMetric(); //receive and send grasp metric to optimization engine.
         dumpData(); // Dump relevant data.
         openHand(); // Non blocking.
         controlMode=1;
@@ -1683,7 +1643,8 @@ void HandTactileControlThread::run()
     case 3:
         //pos->stop();
         computeGraspMetric(); // Based on fingertip contacts.
-        sendData(); // Send grasp metric to optimization engine.
+        sendUnitForces(); // Send Unit Forces to compute grasp metric to optimization engine.
+        read_sendGraspMetric(); //receive and send grasp metric to optimization engine.
         Time::delay(0.1);
         break;
 
@@ -1718,8 +1679,7 @@ void HandTactileControlThread::run()
     }
     
 }
-
-
+/*************************************************************************************************/
 void HandTactileControlThread::threadRelease() 
 {    
     delete[] controlledJoints;
@@ -1730,4 +1690,104 @@ void HandTactileControlThread::threadRelease()
     delete[] armFullConf;
 }
 
+/*************************************************************************************************/  
+/**************************************** UserCmdThread  *****************************************/
+/*************************************************************************************************/
+
+UserCmdThread::UserCmdThread(HandTactileControlThread *hcThread, RpcServer *sPort )
+{
+    handConThread=hcThread;
+    setPort=sPort; 
+
+}
+/*************************************************************************************************/
+bool UserCmdThread::threadInit()
+{
+    return true;
+}
+/*************************************************************************************************/
+void UserCmdThread::checkUserCmd()
+{
+    Bottle userCmd, rep;
+    string msg = "";
+    string tmpSa, tmpSb;
+    int tmpI;
+    userCmd.clear();
+    if ( setPort->read(userCmd,true) )
+    {
+        
+    fprintf(stderr,"Got user message: %s\n", userCmd.toString().c_str());
+
+    rep.clear();
+    //rep.addString("ack");
+    //setPort->reply(rep);
+
+    tmpSa = userCmd.get(0).asString();
+
+    if (tmpSa=="set")
+    {
+        tmpSb = userCmd.get(1).asString();
+        if (tmpSb =="mode")
+        {
+        tmpI = userCmd.get(2).asInt();
+        fprintf(stderr,"Desired control mode is: %d\n", tmpI);
+            fprintf(stderr,"Current control mode is: %d\n", handConThread->controlMode);
+            handConThread->controlMode = tmpI;
+            fprintf(stderr,"New control mode is: %d\n", handConThread->controlMode);
+        rep.addString("done");
+        rep.addInt(handConThread->controlMode);
+            setPort->reply(rep);
+        }
+        else
+        {
+        fprintf(stderr,"\n--ERROR: unidentified message--\n");
+        rep.addString("fail");
+            setPort->reply(rep);
+        }
+        
+    }
+    else if (tmpSa=="get")
+    {
+        tmpSb = userCmd.get(1).asString();
+        if (tmpSb =="mode")
+        {
+            rep.addString("done");
+        rep.addInt(handConThread->controlMode);
+            setPort->reply(rep);
+        fprintf(stderr,"Control mode sent is: %d\n", handConThread->controlMode);
+        }
+        else
+        {
+        fprintf(stderr,"\n--ERROR: unidentified message--\n");
+        rep.addString("fail");
+            setPort->reply(rep);
+        }
+      
+    }
+    else
+    {
+        fprintf(stderr,"\n--ERROR: unidentified message--\n");
+        rep.addString("fail");
+        setPort->reply(rep);
+    }
+
+    }
+  
+}
+/*************************************************************************************************/
+void UserCmdThread::run()
+{
+  
+    while ( !isStopping() )
+    {
+        checkUserCmd(); //wait for a user commands to set some parameters of DynamicControl Thread
+    }
+
+}
+/*************************************************************************************************/
+void UserCmdThread::threadRelease()
+{
+    
+
+}
 
