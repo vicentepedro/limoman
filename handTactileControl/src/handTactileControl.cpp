@@ -128,9 +128,13 @@ bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
                             "Output port that sends grasp metric values").asString()
                             );
 
+    rpcMassimoPortName = "/" + moduleName + "/massimo:rpc";
+
     deviceName              = rf.check("deviceName", 
                               Value("remote_controlboard"), 
                               "Device to open (string)").asString();
+
+    bool useMassimo = rf.check("useMassimo",Value("on")).asString()=="on"?true:false;
 
     Bottle activeJointsBottle;
     if( rf.check("activeJoints", "Active joints for the given robot part, e.g., 1 1 0 1 1") )
@@ -201,8 +205,11 @@ bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
         cout << getName() << ": unable to open port " << outputGraspPortName.c_str() << endl;
         return false;  // unable to open; let RFModule know so that it won't run
     }
-
-    
+    if (!rpcMassimoPort.open(rpcMassimoPortName.c_str()))
+    {
+        cout << getName() << ": unable to open port " << rpcMassimoPortName.c_str() << endl;
+        return false;  // unable to open; let RFModule know so that it won't run
+    }
     /* connect to remote device  */
     Property options;
     options.put("device", deviceName.c_str());             // device to open
@@ -327,7 +334,7 @@ bool HandTactileControlModule::configure(yarp::os::ResourceFinder &rf)
     
     fprintf(stderr,"Now open the hand tactile control thread...\n");
        
-    handControlThread = new HandTactileControlThread(&robotDevice, &cartDevice, partName, &jointLimitsMin, &jointLimitsMax, &armRestPos, velocity, maxVel, period, &skinCompPort, &inputOptPort, &outputOptPort, &inputGraspPort, &outputGraspPort, &controlledJoints);
+    handControlThread = new HandTactileControlThread(&robotDevice, &cartDevice, partName, &jointLimitsMin, &jointLimitsMax, &armRestPos, velocity, maxVel, period, &skinCompPort, &inputOptPort, &outputOptPort, &inputGraspPort, &outputGraspPort, &rpcMassimoPort ,&controlledJoints,useMassimo);
 
     fprintf(stderr,"...done.\n");
     
@@ -393,23 +400,24 @@ double HandTactileControlModule::getPeriod()
 /*********************************** HandTactileControlThread  ***********************************/
 /*************************************************************************************************/
 
-HandTactileControlThread::HandTactileControlThread(PolyDriver *robDev, PolyDriver *cartDev, string pName, Vector *jLimitsMin, Vector *jLimitsMax, Vector *aRestPos, double vel, double mV, int per, BufferedPort< Vector > *sPort, BufferedPort< Bottle > *iPortOpt, BufferedPort< Bottle > *oPortOpt, BufferedPort< Bottle > *iPortGrasp, BufferedPort< Bottle > *oPortGrasp, Vector *cJoints) : RateThread(per)
+HandTactileControlThread::HandTactileControlThread(PolyDriver *robDev, PolyDriver *cartDev, string pName, Vector *jLimitsMin, Vector *jLimitsMax, Vector *aRestPos, double vel, double mV, int per, BufferedPort< Vector > *sPort, BufferedPort< Bottle > *iPortOpt, BufferedPort< Bottle > *oPortOpt, BufferedPort< Bottle > *iPortGrasp, BufferedPort< Bottle > *oPortGrasp, RpcClient *rpcMPort, Vector *cJoints, bool massimo) : RateThread(per)
 {
-    robotDevice  = robDev;
-    cartDevice  = cartDev;
-    partName    = pName;
-    portSkinCompIn = sPort;
+    useMassimo       = massimo;
+    robotDevice      = robDev;
+    cartDevice       = cartDev;
+    partName         = pName;
+    portSkinCompIn   = sPort;
 
-    inputOptPort   = iPortOpt;
-    outputOptPort   = oPortOpt;
+    inputOptPort     = iPortOpt;
+    outputOptPort    = oPortOpt;
 
     inputGraspPort   = iPortGrasp;
-    outputGraspPort   = oPortGrasp;
+    outputGraspPort  = oPortGrasp;
+    rpcMassimoPort   = rpcMPort;
 
-
-    jointLimitsMin = jLimitsMin;
-    jointLimitsMax = jLimitsMax;
-    armRestPos     = aRestPos;
+    jointLimitsMin   = jLimitsMin;
+    jointLimitsMax   = jLimitsMax;
+    armRestPos       = aRestPos;
     velocity = vel;
     periodInMsec = per;
     periodInSec = (double)per/1000.0;
@@ -1253,6 +1261,22 @@ void HandTactileControlThread::squeezingStep()
     fprintf(stderr,"\n...done.\n");
 }
 /*************************************************************************************************/
+bool HandTactileControlThread::closeHandMassimo() {
+    if (rpcMassimoPort->getOutputCount()>0)
+    {
+        Bottle cmd;
+        Bottle reply;
+        cmd.clear();
+        reply.clear();
+        cmd.addString("grasp");
+        yInfo("sending command to Massimo's module: %s", cmd.toString().c_str());
+        rpcMassimoPort->write(cmd, reply);
+        return true;
+    }
+    else
+        return false;
+}
+/*************************************************************************************************/
 void HandTactileControlThread::closeHandToContact()   
 {
     /********* POSTION DIRECT  *********
@@ -1604,9 +1628,8 @@ void HandTactileControlThread::run()
     if (readInputPort())
     {
         updateRef();
-    controlMode = 2;
+        controlMode = 2;
     }
-   
     
     switch (controlMode)
     {
@@ -1630,7 +1653,15 @@ void HandTactileControlThread::run()
     case 2:
         openHand(); // Non blocking.
         handMoveToPose(target_hand_p, target_hand_o); // Blocking.
-        closeHandToContact(); // Checking tactile sensors inside here. Stop each finger after contact. Blocking. 
+        if(useMassimo) {
+            if(!closeHandMassimo()) 
+            {
+                yError("Something went wrong with command to Massimo Module");
+            }
+        }
+        else {
+            closeHandToContact(); // Checking tactile sensors inside here. Stop each finger after contact. Blocking. 
+        }
         //squeezingStep(); // Close the fingers a bit more to improve grasp robustness.
         computeGraspMetric(); // Based on final touch configuration from previous step.
         sendUnitForces(); // Send Unit Forces to compute grasp metric to optimization engine.

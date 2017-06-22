@@ -78,7 +78,7 @@ class HandTactileControlThread : public RateThread
     
     bool   motionStarted;
     bool   motionDone;
- 
+    bool   useMassimo;
     
     bool readInputPort();
     void readData();
@@ -91,6 +91,7 @@ class HandTactileControlThread : public RateThread
     void setDefHandPoseToThis();
     void handMoveToPose(Vector xd, Vector od);
     void updateRef(); 
+    bool closeHandMassimo();
     void closeHandToContact();
     void checkMotionDone_posDir_handGrasp(bool &done);
     void computeGraspMetric();
@@ -117,6 +118,7 @@ class HandTactileControlThread : public RateThread
     BufferedPort< Bottle > *inputGraspPort; 
     BufferedPort< Bottle > *outputGraspPort;
 
+    RpcClient *rpcMassimoPort;
     Vector *jointLimitsMin;
     Vector *jointLimitsMax;
     Vector *armRestPos;
@@ -142,7 +144,7 @@ public:
     int controlMode; // 0 - idle; 1 - position direct; 2 - postion control with bell-shaped trajectories; 3 - contact sensing test
 
     /* class methods */
-    HandTactileControlThread(PolyDriver *robDev, PolyDriver *cartDev, string pName, Vector *jLimitsMin, Vector *jLimitsMax, Vector *hRestPos, double vel, double mV, int per, BufferedPort< Vector > *skinCompPort, BufferedPort< Bottle > *inOptPort, BufferedPort< Bottle > *outOptPort, BufferedPort< Bottle > *inGraspPort, BufferedPort< Bottle > *outGraspPort,Vector *cJoints);
+    HandTactileControlThread(PolyDriver *robDev, PolyDriver *cartDev, string pName, Vector *jLimitsMin, Vector *jLimitsMax, Vector *hRestPos, double vel, double mV, int per, BufferedPort< Vector > *skinCompPort, BufferedPort< Bottle > *inOptPort, BufferedPort< Bottle > *outOptPort, BufferedPort< Bottle > *inGraspPort, BufferedPort< Bottle > *outGraspPort, RpcClient *rpcMassimoPort, Vector *cJoints, bool massimo);
     bool threadInit();     
     void threadRelease();
     void run(); 
@@ -161,7 +163,6 @@ public:
     void threadRelease();
     void run(); 
     void simControlStep();
-    
     void checkUserCmd();
   
 };
@@ -189,6 +190,8 @@ class HandTactileControlModule : public RFModule
     string inputGraspPortName;
     string outputGraspPortName;
 
+    string rpcMassimoPortName;
+
     string deviceName;
     
     Vector jointLimitsMin;
@@ -208,12 +211,13 @@ class HandTactileControlModule : public RFModule
     RpcServer setPort;                             // input/output port that receives commands from user (typically to change some parameters), and sends replies
     BufferedPort< Vector > skinCompPort;           // port to read skin data (compensated)
 
-    BufferedPort< Bottle > inputOptPort;       // input port that receives target hand configuration values 
-    BufferedPort< Bottle > outputOptPort;        // output port that sends grasp metric
+    BufferedPort< Bottle > inputOptPort;           // input port that receives target hand configuration values
+    BufferedPort< Bottle > outputOptPort;          // output port that sends grasp metric
 
-    BufferedPort< Bottle > inputGraspPort;    // input port that receives the grap metric
-    BufferedPort< Bottle > outputGraspPort;     // output port that sends unit vectors
+    BufferedPort< Bottle > inputGraspPort;        // input port that receives the grap metric
+    BufferedPort< Bottle > outputGraspPort;       // output port that sends unit vectors
 
+    RpcClient rpcMassimoPort;
     /* pointer to a new thread to be created and started in configure() and stopped in close() */ 
 
     HandTactileControlThread    *handControlThread;
